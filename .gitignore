@@ -1,6 +1,7 @@
 logs/
 www/
 ssl/
+var/run/
 
 
 .DS_Store
