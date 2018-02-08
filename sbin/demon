@@ -74,7 +74,7 @@ Start()
 Stop()
 {
 	  if [[ -r $HTTPD_PID ]]; then
-        "${APACHECTL}" -f "${HTTPD_CONFIG}" -k stop > /dev/null
+        "${APACHECTL}" -f "${HTTPD_CONFIG}" -k stop > /dev/null 2>&1
     else
         echo "No active httpd process found."
     fi
@@ -89,7 +89,7 @@ Stop()
 
 Restart()
 {
-	  "${APACHECTL}" -f "${HTTPD_CONFIG}" -k restart > /dev/null
+	  "${APACHECTL}" -f "${HTTPD_CONFIG}" -k restart > /dev/null 2>&1
 }
 
 Test()
