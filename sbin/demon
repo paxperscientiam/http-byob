@@ -39,12 +39,15 @@ export HTTPD_DOCUMENT_ROOT="${HTTPD_ROOT}/www"
 export PHP_ROOT="${HTTPD_ROOT}/etc/php72/"
 export DNSMASQ_PID="${HTTPD_ROOT}/var/run/dnsmasq.pid"
 export HTTPD_PID="${HTTPD_ROOT}/var/run/httpd.pid"
-
+:
+export HTTPD_USER=$(logname)
 
 # Configs
 HTTPD_CONFIG="${HTTPD_ROOT}/conf/httpd.conf"
 DNSMASQ_CONFIG="${HTTPD_ROOT}/etc/dnsmasq.conf"
-PHP_CONFIG="${HTTPD_ROOT}/etc/php72/php.ini"
+
+# unncessary
+#PHP_CONFIG="${PHP_ROOT}/php-dev.ini"
 :
 
 # before starting, make sure dnsmasq already running
