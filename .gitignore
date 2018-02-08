@@ -1,0 +1,6 @@
+logs/
+www/
+ssl/
+
+
+.DS_Store

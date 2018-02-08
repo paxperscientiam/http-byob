@@ -1,0 +1,126 @@
+#!/usr/bin/env bash
+
+:
+# permission check
+if [[ $UID != 0 ]]; then
+    echo "Please run this script with sudo:"
+    echo "sudo $0 $*"
+    exit 1
+fi
+:
+# Executables
+HTTPD="/opt/local/sbin/httpd"
+DNSMASQ="/opt/local/sbin/dnsmasq"
+APACHECTL="/opt/local/sbin/apachectl"
+:
+:
+check () {
+    local file; file="${1}"
+    :
+    SOURCE="${BASH_SOURCE[-1]}"
+    while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
+        DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+        SOURCE="$(readlink "$SOURCE")"
+        [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
+    done
+    _CWD="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+    :
+    [[ ${#1} -eq 0 ]] && return 2
+    # pathchk could come in handy
+    [[ -r $_CWD/$file ]] && return 0
+    return 1
+}
+check
+:
+:
+# pass through variables
+export HTTPD_ROOT; HTTPD_ROOT=$(dirname "${_CWD}")
+export HTTPD_DOCUMENT_ROOT="${HTTPD_ROOT}/www"
+export PHP_ROOT="${HTTPD_ROOT}/etc/php72/"
+export DNSMASQ_PID="${HTTPD_ROOT}/var/run/dnsmasq.pid"
+export HTTPD_PID="${HTTPD_ROOT}/var/run/httpd.pid"
+
+
+# Configs
+HTTPD_CONFIG="${HTTPD_ROOT}/conf/httpd.conf"
+DNSMASQ_CONFIG="${HTTPD_ROOT}/etc/dnsmasq.conf"
+PHP_CONFIG="${HTTPD_ROOT}/etc/php72/php.ini"
+:
+
+# before starting, make sure dnsmasq already running
+
+MASQ ()
+{
+    if [[ ! -r $DNSMASQ_PID ]]
+    then
+        "${DNSMASQ}" --log-queries -C "${DNSMASQ_CONFIG}" -x "${DNSMASQ_PID}"
+    fi
+}
+
+# Start
+Start()
+{
+    MASQ &
+    wait
+	  [[ -x $HTTPD ]] && "${HTTPD}" -k start -f "${HTTPD_CONFIG}" > /dev/null 2>&1
+}
+
+#
+# Stop
+#
+Stop()
+{
+	  if [[ -r $HTTPD_PID ]]; then
+        "${APACHECTL}" -f "${HTTPD_CONFIG}" -k stop > /dev/null
+    else
+        echo "No active httpd process found."
+    fi
+
+    if [ -r "${DNSMASQ_PID}" ]; then
+        pkill dnsmasq
+        rm "${DNSMASQ_PID}"
+    else
+        echo "No active dnsmasq process found."
+    fi
+}
+
+Restart()
+{
+	  "${APACHECTL}" -f "${HTTPD_CONFIG}" -k restart > /dev/null
+}
+
+Test()
+{
+    "${DNSMASQ}" -C "${DNSMASQ_CONFIG}" --test &
+    wait
+    "${APACHECTL}" -f "${HTTPD_CONFIG}" -t #-D DUMP_VHOSTS
+}
+
+# #
+# # Run
+# #
+Run()
+{
+    case $1 in
+        start  ) Start   ;;
+        stop   ) Stop    ;;
+        restart) Restart ;;
+        test   ) Test    ;;
+        *      ) echo "Unknown option: try 'Start', 'Stop', 'Restart' or 'Test'";;
+    esac
+}
+
+### some prep stuff
+# /bin/launchctl \
+#     unload -w \
+#     /System/Library/LaunchDaemons/org.apache.httpd.plist &> /dev/null
+
+
+
+
+#
+# Run a phase based on the selector
+#DNS
+Run "${1}"
+
+# watch 'pgrep dnsmasq | wc -l ; pgrep httpd | wc -l'
