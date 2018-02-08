@@ -98,6 +98,8 @@ Restart()
 
 Test()
 {
+    printf 'executables:\n%s\n%s\n%s\n\n' "${HTTPD}" "${APACHECTL}" "${DNSMASQ}"
+
     printf '%s\n' "${HTTPD_ROOT}"
 
     "${DNSMASQ}" -C "${DNSMASQ_CONFIG}" --test &
