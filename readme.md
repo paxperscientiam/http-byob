@@ -5,3 +5,7 @@ If by some miracle you are able to get this to work, this repo includes an examp
 
 `www.example.local.dev`
 
+
+This assumes a directory structure like this (relative to repo):
+
+`www/clients/<SUBDOMAIN>/<DOMAIN.TLD>/wwwroot/`
