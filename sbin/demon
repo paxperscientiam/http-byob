@@ -98,6 +98,8 @@ Restart()
 
 Test()
 {
+    printf '%s\n' "${HTTPD_ROOT}"
+
     "${DNSMASQ}" -C "${DNSMASQ_CONFIG}" --test &
     wait
     "${APACHECTL}" -f "${HTTPD_CONFIG}" -t #-D DUMP_VHOSTS
