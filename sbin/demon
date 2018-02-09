@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
-
+clean () {
+    [[ -r $HTTPD_PID ]] && rm "${HTTPD_PID}"
+    [[ -r $DNSMASQ_PID ]] && rm "${DNSMASQ_PID}"
+}
+trap clean SIGINT SIGQUIT
 ########################
 # Executables
 HTTPD="/opt/local/sbin/httpd"
@@ -41,10 +45,11 @@ check
 export HTTPD_ROOT; HTTPD_ROOT=$(dirname "${_CWD}")
 export HTTPD_DOCUMENT_ROOT="${HTTPD_ROOT}/www"
 export PHP_ROOT="${HTTPD_ROOT}/etc/php72/"
-export DNSMASQ_PID="${HTTPD_ROOT}/var/run/dnsmasq.pid" ; [[ ! -r $DNSMASQ_PID ]] && touch "${DNSMASQ_PID}"
-export HTTPD_PID="${HTTPD_ROOT}/var/run/httpd.pid" ; [[ ! -r $HTTPD_PID ]] && touch "${HTTPD_PID}"
+export DNSMASQ_PID="${HTTPD_ROOT}/var/run/dnsmasq.pid"
+export HTTPD_PID="${HTTPD_ROOT}/var/run/httpd.pid"
 :
-export HTTPD_USER=$(logname)
+export HTTPD_USER
+HTTPD_USER=$(logname)
 
 # Configs
 HTTPD_CONFIG="${HTTPD_ROOT}/conf/httpd.conf"
@@ -85,10 +90,10 @@ Stop()
 
     if [ -r "${DNSMASQ_PID}" ]; then
         pkill dnsmasq
-        rm "${DNSMASQ_PID}"
     else
         echo "No active dnsmasq process found."
     fi
+    clean
 }
 
 Restart()
