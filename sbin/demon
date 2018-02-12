@@ -38,7 +38,7 @@ check () {
     [[ -r $_CWD/$file ]] && return 0
     return 1
 }
-check
+check ''
 :
 :
 # pass through variables
