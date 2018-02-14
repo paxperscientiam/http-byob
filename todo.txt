@@ -3,3 +3,4 @@ fallback if DNSMASQ not available
 display dashboard
 use a config file
 status command
+define log names in demon script

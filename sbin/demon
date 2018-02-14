@@ -48,6 +48,15 @@ export PHP_ROOT="${HTTPD_ROOT}/etc/php72/"
 export DNSMASQ_PID="${HTTPD_ROOT}/var/run/dnsmasq.pid"
 export HTTPD_PID="${HTTPD_ROOT}/var/run/httpd.pid"
 :
+
+export HTTPD_CUSTOM_LOG="${HTTPD_ROOT}/logs/access.fifo"
+[[ ! -p $HTTPD_CUSTOM_LOG ]] && \
+    mkfifo "${HTTPD_CUSTOM_LOG}"
+:
+export HTTPD_ERROR_LOG="${HTTPD_ROOT}/logs/error.fifo"
+[[ ! -p $HTTPD_ERROR_LOG ]] && \
+    mkfifo "${HTTPD_ERROR_LOG}"
+:
 export HTTPD_USER
 HTTPD_USER=$(logname)
 
@@ -114,6 +123,12 @@ Test()
     "${APACHECTL}" -f "${HTTPD_CONFIG}" -t #-D DUMP_VHOSTS
 }
 
+Watch ()
+{
+    echo "${HTTPD_USER}";exit
+    USER="${HTTPD_USER}" mkfifo "${HTTPD_ROOT}/shit.fifo"
+
+}
 # #
 # # Run
 # #
@@ -124,6 +139,7 @@ Run()
         stop   ) Stop    ;;
         restart) Restart ;;
         test   ) Test    ;;
+        watch  ) Watch   ;;
         *      ) echo "Unknown option: try 'Start', 'Stop', 'Restart' or 'Test'";;
     esac
 }
