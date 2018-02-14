@@ -51,6 +51,8 @@ export HTTPD_PID="${HTTPD_ROOT}/var/run/httpd.pid"
 export HTTPD_USER
 HTTPD_USER=$(logname)
 
+export HTTPD_SERVER_NAME="prometheus"
+
 # Configs
 HTTPD_CONFIG="${HTTPD_ROOT}/conf/httpd.conf"
 DNSMASQ_CONFIG="${HTTPD_ROOT}/etc/dnsmasq.conf"

@@ -2,3 +2,4 @@ check that programs are installed
 fallback if DNSMASQ not available
 display dashboard
 use a config file
+status command
