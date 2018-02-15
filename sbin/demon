@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
-clean () {
+destroy () {
     [[ -r $HTTPD_PID ]] && rm "${HTTPD_PID}"
     [[ -r $DNSMASQ_PID ]] && rm "${DNSMASQ_PID}"
+
+    Clean
 }
-trap clean SIGINT SIGQUIT
+trap destroy SIGINT SIGQUIT
 ########################
 # Executables
 HTTPD="/opt/local/sbin/httpd"
@@ -11,7 +13,8 @@ DNSMASQ="/opt/local/sbin/dnsmasq"
 APACHECTL="/opt/local/sbin/apachectl"
 export HTTP_SERVER_ROOT="/opt/local"
 #################
-
+export HTTPD_USER
+HTTPD_USER=$(logname)
 :
 # permission check
 if [[ $UID != 0 ]]; then
@@ -20,6 +23,7 @@ if [[ $UID != 0 ]]; then
     exit 1
 fi
 :
+
 :
 :
 check () {
@@ -41,6 +45,7 @@ check () {
 check ''
 :
 :
+
 # pass through variables
 export HTTPD_ROOT; HTTPD_ROOT=$(dirname "${_CWD}")
 export HTTPD_DOCUMENT_ROOT="${HTTPD_ROOT}/www"
@@ -51,14 +56,24 @@ export HTTPD_PID="${HTTPD_ROOT}/var/run/httpd.pid"
 
 export HTTPD_CUSTOM_LOG="${HTTPD_ROOT}/logs/access.fifo"
 [[ ! -p $HTTPD_CUSTOM_LOG ]] && \
-    mkfifo "${HTTPD_CUSTOM_LOG}"
+    sudo -u "${HTTPD_USER}" mkfifo "${HTTPD_CUSTOM_LOG}"
+#exec 3<> "${HTTPD_CUSTOM_LOG}"
 :
+printf '%s\n' "Now watching ..."  >&3
 export HTTPD_ERROR_LOG="${HTTPD_ROOT}/logs/error.fifo"
 [[ ! -p $HTTPD_ERROR_LOG ]] && \
-    mkfifo "${HTTPD_ERROR_LOG}"
+    sudo -u "${HTTPD_USER}" mkfifo "${HTTPD_ERROR_LOG}"
+#exec 4<> "${HTTPD_ERROR_LOG}"
 :
-export HTTPD_USER
-HTTPD_USER=$(logname)
+export HTTPD_VHOST_CUSTOM_LOG="${HTTPD_ROOT}/logs/projects/vhosts_access.fifo"
+[[ ! -p $HTTPD_VHOST_CUSTOM_LOG ]] &&
+    sudo -u "${HTTPD_USER}" mkfifo "${HTTPD_VHOST_CUSTOM_LOG}"
+#exec 5<> "${HTTPD_VHOST_CUSTOM_LOG}"
+:
+export HTTPD_VHOST_ERROR_LOG="${HTTPD_ROOT}/logs/projects/vhosts_errors.fifo"
+[[ ! -p $HTTPD_VHOST_ERROR_LOG ]] &&
+    sudo -u "${HTTPD_USER}" mkfifo "${HTTPD_VHOST_ERROR_LOG}"
+#exec 6<> "${HTTPD_VHOST_ERROR_LOG}"
 
 export HTTPD_SERVER_NAME="prometheus"
 
@@ -104,7 +119,7 @@ Stop()
     else
         echo "No active dnsmasq process found."
     fi
-    clean
+    destroy
 }
 
 Restart()
@@ -125,8 +140,17 @@ Test()
 
 Watch ()
 {
-    echo "${HTTPD_USER}";exit
-    USER="${HTTPD_USER}" mkfifo "${HTTPD_ROOT}/shit.fifo"
+    cat < "${HTTPD_CUSTOM_LOG}"
+
+}
+
+Clean ()
+{
+    rm "${HTTPD_CUSTOM_LOG}" \
+       "${HTTPD_ERROR_LOG}" \
+       "${HTTPD_VHOST_CUSTOM_LOG}" \
+       "${HTTPD_VHOST_ERROR_LOG}"
+
 
 }
 # #
@@ -138,16 +162,17 @@ Run()
         start  ) Start   ;;
         stop   ) Stop    ;;
         restart) Restart ;;
-        test   ) Test    ;;
-        watch  ) Watch   ;;
+        --test   ) Test    ;;
+        --watch  ) Watch   ;;
+        clean  ) Clean   ;;
         *      ) echo "Unknown option: try 'Start', 'Stop', 'Restart' or 'Test'";;
     esac
 }
 
 ### some prep stuff
 # /bin/launchctl \
-#     unload -w \
-#     /System/Library/LaunchDaemons/org.apache.httpd.plist &> /dev/null
+    #     unload -w \
+    #     /System/Library/LaunchDaemons/org.apache.httpd.plist &> /dev/null
 
 
 
