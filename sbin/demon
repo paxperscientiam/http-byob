@@ -1,9 +1,22 @@
 #!/usr/bin/env bash
+#set -x
 destroy () {
-    [[ -r $HTTPD_PID ]] && rm "${HTTPD_PID}"
-    [[ -r $DNSMASQ_PID ]] && rm "${DNSMASQ_PID}"
+    if [[ -r $HTTPD_PID ]]; then
+        read -r pid < "${HTTPD_PID}"
+        kill "${pid}" &
+        wait
+        rm "${HTTPD_PID}"
+    fi
 
-    Clean
+    if [[ -r $DNSMASQ_PID ]]; then
+        read -r pid < "${DNSMASQ_PID}"
+        kill "${pid}" &
+        wait
+        rm "${DNSMASQ_PID}"
+    fi
+    exec 3>&-
+    Clean &
+    wait
 }
 trap destroy SIGINT SIGQUIT
 ########################
@@ -56,13 +69,13 @@ export HTTPD_PID="${HTTPD_ROOT}/var/run/httpd.pid"
 
 export HTTPD_CUSTOM_LOG="${HTTPD_ROOT}/logs/access.fifo"
 [[ ! -p $HTTPD_CUSTOM_LOG ]] && \
-    sudo -u "${HTTPD_USER}" mkfifo "${HTTPD_CUSTOM_LOG}"
-#exec 3<> "${HTTPD_CUSTOM_LOG}"
+    mkfifo "${HTTPD_CUSTOM_LOG}"
+#exec 3<> "${HTTPD_CUSTOM_LOG}"; printf '%s\n' "Now logging ..."  >&3
 :
-printf '%s\n' "Now watching ..."  >&3
 export HTTPD_ERROR_LOG="${HTTPD_ROOT}/logs/error.fifo"
 [[ ! -p $HTTPD_ERROR_LOG ]] && \
-    sudo -u "${HTTPD_USER}" mkfifo "${HTTPD_ERROR_LOG}"
+    mkfifo "${HTTPD_ERROR_LOG}"
+#sudo -u "${HTTPD_USER}" mkfifo "${HTTPD_ERROR_LOG}"
 #exec 4<> "${HTTPD_ERROR_LOG}"
 :
 export HTTPD_VHOST_CUSTOM_LOG="${HTTPD_ROOT}/logs/projects/vhosts_access.fifo"
@@ -95,12 +108,23 @@ MASQ ()
     fi
 }
 
+
+Listen()
+{
+    cat "${HTTPD_ERROR_LOG}" &
+    # Open pipe for writing.
+    exec 3>"${HTTPD_ERROR_LOG}"
+    wait
+}
+
 # Start
 Start()
 {
-    MASQ &
-    wait
-	  [[ -x $HTTPD ]] && "${HTTPD}" -k start -f "${HTTPD_CONFIG}" > /dev/null 2>&1
+#    MASQ &
+    #    wait
+    Listen
+	  [[ -x $HTTPD ]] && "${HTTPD}" -k start -f "${HTTPD_CONFIG}"
+    # > /dev/null 2>&1
 }
 
 #
@@ -135,13 +159,13 @@ Test()
 
     "${DNSMASQ}" -C "${DNSMASQ_CONFIG}" --test &
     wait
-    "${APACHECTL}" -f "${HTTPD_CONFIG}" -t #-D DUMP_VHOSTS
+    "${APACHECTL}" -f "${HTTPD_CONFIG}" -t -D DUMP_VHOSTS #| column -t
 }
 
 Watch ()
 {
-    cat < "${HTTPD_CUSTOM_LOG}"
-
+    cat < "${HTTPD_ERROR_LOG}" &
+    wait
 }
 
 Clean ()
@@ -150,8 +174,6 @@ Clean ()
        "${HTTPD_ERROR_LOG}" \
        "${HTTPD_VHOST_CUSTOM_LOG}" \
        "${HTTPD_VHOST_ERROR_LOG}"
-
-
 }
 # #
 # # Run
@@ -162,9 +184,10 @@ Run()
         start  ) Start   ;;
         stop   ) Stop    ;;
         restart) Restart ;;
-        --test   ) Test    ;;
+        -t|--test   ) Test    ;;
         --watch  ) Watch   ;;
         clean  ) Clean   ;;
+        masq ) MASQ ;;
         *      ) echo "Unknown option: try 'Start', 'Stop', 'Restart' or 'Test'";;
     esac
 }
