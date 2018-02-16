@@ -33,7 +33,9 @@ dust () {
     then
         printf '%s\n' "That went suprisingly well."
     elif [[ $EXIT -eq 101 ]]
-         then
+    then
+        printf '%s\n' "Please run this script with sudo:"
+    fi
 }
 trap dust EXIT
 ########################
@@ -47,11 +49,9 @@ export HTTPD_USER
 HTTPD_USER=$(logname)
 :
 # permission check
-if [[ $UID != 0 ]]; then
-    echo "Please run this script with sudo:"
-    echo "sudo $0 $*"
-    exit 1
-fi
+gate() {
+    [[ $UID != 0 ]] && EXIT=101 && exit "${EXIT}"
+}
 :
 
 :
@@ -229,6 +229,7 @@ Run()
 {
     case $1 in
         start  )
+            gate;
             shift
             case $1 in
                 --masq)
@@ -242,14 +243,24 @@ Run()
             esac
             Start
             ;;
-        stop   ) Stop
-                 ;;
-        restart) Restart
-                 ;;
-        -t|--test   ) Test    ;;
-        --watch  ) Watch   ;;
-        --listen ) Listen
-                   ;;
+        stop   )
+            gate
+            Stop
+            ;;
+        restart)
+            gate
+            Restart
+            ;;
+        -t|--test   )
+            gate
+            Test
+            ;;
+        --watch  )
+            Watch
+            ;;
+        --listen )
+            Listen
+            ;;
         clean  ) Clean
                  ;;
         *      ) echo "Unknown option: try 'Start', 'Stop', 'Restart' or 'Test'";;
