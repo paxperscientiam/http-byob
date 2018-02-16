@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 shopt -s extglob
 shopt -s nullglob
-set -x
+#set -x
 :
 Destroy () {
     gate
@@ -24,11 +24,14 @@ Destroy () {
     exec 6>&-
     exec 7>&-
 
-    rm "${HTTPD_CUSTOM_LOG}" \
-       "${HTTPD_ERROR_LOG}" \
-       "${HTTPD_VHOST_CUSTOM_LOG}" \
-       "${HTTPD_VHOST_ERROR_LOG}" \
-       "${DNSMASQ_LOG}"
+    for item in  "${HTTPD_CUSTOM_LOG}" \
+                     "${HTTPD_ERROR_LOG}" \
+                     "${HTTPD_VHOST_CUSTOM_LOG}" \
+                     "${HTTPD_VHOST_ERROR_LOG}" \
+                     "${DNSMASQ_LOG}"
+    do
+        rm "${item}"
+    done
     :
     EXIT=102
 }
@@ -38,6 +41,9 @@ Msg () {
     if [[ $EXIT -eq 0 ]]
     then
         printf '%s\n' "That went suprisingly well."
+    elif [[ $EXIT -eq 1  ]]
+    then
+        printf '%s\n' "Error"
     elif [[ $EXIT -eq 101 ]]
     then
         printf '%s\n' "Please run this script with sudo."
@@ -62,12 +68,8 @@ gate() {
     [[ $UID != 0 ]] && EXIT=101 && exit "${EXIT}"
 }
 :
-
 :
-:
-check() {
-    local file; file="${1}"
-    :
+get_cwd() {
     SOURCE="${BASH_SOURCE[-1]}"
     while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
         DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
@@ -76,12 +78,19 @@ check() {
     done
     _CWD="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
     :
+}
+get_cwd
+
+check() {
+    [[ "${#_CWD}" -eq 0 ]] && printf "The CWD must be defined.\\n"
+    local file; file="${1}"
     [[ ${#1} -eq 0 ]] && return 2
     # pathchk could come in handy
     [[ -r $_CWD/$file ]] && return 0
     return 1
 }
-check ''
+
+
 :
 :
 
@@ -141,7 +150,7 @@ MASQ()
     if [[ ! -r $DNSMASQ_PID ]]
     then
         "${DNSMASQ}" --user="${HTTPD_USER}" --log-queries \
-                     --log-facility="${DNSMASQ_LOG}" -C "${DNSMASQ_CONFIG}" --no-daemon \
+                     --log-facility="${DNSMASQ_LOG}" -C "${DNSMASQ_CONFIG}" -D  \
                      >/dev/null 2>&1
 
 
@@ -152,9 +161,10 @@ HTTPD()
 {
     if [[ ! -r $HTTPD_PID ]]
     then
-        [[ -x $HTTPD ]] && "${HTTPD}" -k start -f "${HTTPD_CONFIG}"
-
-
+        [[ -x $HTTPD ]] && "${HTTPD}" -k start -f "${HTTPD_CONFIG}" &
+        printf '%s' "Hang on ... "
+        wait
+        printf '%s\n' "done."
     fi
 }
 
@@ -179,7 +189,6 @@ Start()
 {
     MASQ &
     HTTPD &
-    # > /dev/null 2>&1
 }
 
 #
@@ -242,13 +251,14 @@ Run()
                     MASQ
                     exit
                     ;;
-                --httpd)
+                -H|---httpd)
                     HTTPD
                     exit
                     ;;
                 *)
                     printf "Uknown parameter\\n"
                     EXIT=1
+                    exit "${EXIT}"
             esac
             Start
             ;;
