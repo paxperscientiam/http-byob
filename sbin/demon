@@ -1,14 +1,10 @@
 #!/usr/bin/env bash
-#set -x
-# (
-#     # example
-#     exec 7<> ./shit
-#     ping oddworld.com >&7
-
-# ) &
-# wait
-# exit
+shopt -s extglob
+shopt -s nullglob
+set -x
+:
 Destroy () {
+    gate
     if [[ -r $HTTPD_PID ]]; then
         read -r pid < "${HTTPD_PID}"
         kill "${pid}" &
@@ -36,7 +32,7 @@ Destroy () {
     :
     EXIT=102
 }
-trap destroy SIGINT SIGQUIT
+trap Destroy SIGINT SIGQUIT
 :
 Msg () {
     if [[ $EXIT -eq 0 ]]
@@ -69,7 +65,7 @@ gate() {
 
 :
 :
-check () {
+check() {
     local file; file="${1}"
     :
     SOURCE="${BASH_SOURCE[-1]}"
@@ -96,7 +92,7 @@ export PHP_ROOT="${HTTPD_ROOT}/etc/php72/"
 export DNSMASQ_PID="${HTTPD_ROOT}/var/run/dnsmasq.pid"
 export HTTPD_PID="${HTTPD_ROOT}/var/run/httpd.pid"
 :
-Logger ()
+Logger()
 {
     export HTTPD_CUSTOM_LOG="${HTTPD_ROOT}/logs/access.fifo"
     export HTTPD_ERROR_LOG="${HTTPD_ROOT}/logs/error.fifo"
@@ -108,6 +104,7 @@ Logger ()
 
     [[ ! -p $HTTPD_CUSTOM_LOG ]] && \
         sudo -u "${HTTPD_USER}" mkfifo "${HTTPD_CUSTOM_LOG}"
+    # correct syntax for opening pipe for read/write
     exec 3<> "${HTTPD_CUSTOM_LOG}"; printf '%s\n' "Now logging ..."  >&3
     :
     [[ ! -p $HTTPD_ERROR_LOG ]] && \
@@ -139,31 +136,35 @@ DNSMASQ_CONFIG="${HTTPD_ROOT}/etc/dnsmasq.conf"
 
 # before starting, make sure dnsmasq already running
 
-MASQ ()
+MASQ()
 {
     if [[ ! -r $DNSMASQ_PID ]]
     then
-        # daemon mode
-        #"${DNSMASQ}" --log-queries -C "${DNSMASQ_CONFIG}" -x "${DNSMASQ_PID}"
-        # non-daemon-mode
-        echo "${DNSMASQ_LOG}";exit
-        "${DNSMASQ}" --log-queries --log-facility=- -C "${DNSMASQ_CONFIG}" --no-daemon  \
-                     > "${DNSMASQ_LOG}" 1>&2
+        "${DNSMASQ}" --user="${HTTPD_USER}" --log-queries \
+                     --log-facility="${DNSMASQ_LOG}" -C "${DNSMASQ_CONFIG}" --no-daemon \
+                     >/dev/null 2>&1
+
+
     fi
 }
 
-HTTPD ()
+HTTPD()
 {
-    [[ -x $HTTPD ]] && "${HTTPD}" -k start -f "${HTTPD_CONFIG}"
-    exec 3>"${HTTPD_CUSTOM_LOG}"
-    exec 3>"${HTTPD_ERROR_LOG}"
+    if [[ ! -r $HTTPD_PID ]]
+    then
+        [[ -x $HTTPD ]] && "${HTTPD}" -k start -f "${HTTPD_CONFIG}"
+
+
+    fi
 }
 
 
 Listen()
 {
-    cat "${HTTPD_CUSTOM_LOG}"
-    cat "${HTTPD_ERROR_LOG}"
+    cat "${DNSMASQ_LOG}" &
+    cat "${HTTPD_CUSTOM_LOG}" &
+    wait
+    #cat "${HTTPD_ERROR_LOG}"
 
     #cat "${HTTPD_ERROR_LOG}" &
     # Open pipe for writing.
@@ -176,10 +177,8 @@ Listen()
 # Start
 Start()
 {
-    exit 10
-    Listen
-    MASQ
-    HTTPD
+    MASQ &
+    HTTPD &
     # > /dev/null 2>&1
 }
 
@@ -199,7 +198,7 @@ Stop()
     else
         echo "No active dnsmasq process found."
     fi
-    destroy
+    Destroy
 }
 
 Restart()
@@ -266,7 +265,7 @@ Run()
             Test
             ;;
         --watch  )
-            Watch
+            Listen
             ;;
         --listen )
             Listen

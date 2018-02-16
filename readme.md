@@ -1,3 +1,5 @@
+Under heavy development. Use it at your own peril.
+
 `sudo sbin/demon start`
 
 
