@@ -8,7 +8,7 @@
 # ) &
 # wait
 # exit
-destroy () {
+Destroy () {
     if [[ -r $HTTPD_PID ]]; then
         read -r pid < "${HTTPD_PID}"
         kill "${pid}" &
@@ -23,21 +23,34 @@ destroy () {
         rm "${DNSMASQ_PID}"
     fi
     exec 3>&-
-    Clean &
-    wait
+    exec 4>&-
+    exec 5>&-
+    exec 6>&-
+    exec 7>&-
+
+    rm "${HTTPD_CUSTOM_LOG}" \
+       "${HTTPD_ERROR_LOG}" \
+       "${HTTPD_VHOST_CUSTOM_LOG}" \
+       "${HTTPD_VHOST_ERROR_LOG}" \
+       "${DNSMASQ_LOG}"
+    :
+    EXIT=102
 }
 trap destroy SIGINT SIGQUIT
 :
-dust () {
+Msg () {
     if [[ $EXIT -eq 0 ]]
     then
         printf '%s\n' "That went suprisingly well."
     elif [[ $EXIT -eq 101 ]]
     then
-        printf '%s\n' "Please run this script with sudo:"
+        printf '%s\n' "Please run this script with sudo."
+    elif [[ $EXIT -eq 102 ]]
+    then
+        printf '%s\n' "Cleanup is complete."
     fi
 }
-trap dust EXIT
+trap Msg EXIT
 ########################
 # Executables
 HTTPD="/opt/local/sbin/httpd"
@@ -83,36 +96,36 @@ export PHP_ROOT="${HTTPD_ROOT}/etc/php72/"
 export DNSMASQ_PID="${HTTPD_ROOT}/var/run/dnsmasq.pid"
 export HTTPD_PID="${HTTPD_ROOT}/var/run/httpd.pid"
 :
-
-logger ()
+Logger ()
 {
     export HTTPD_CUSTOM_LOG="${HTTPD_ROOT}/logs/access.fifo"
+    export HTTPD_ERROR_LOG="${HTTPD_ROOT}/logs/error.fifo"
+    export HTTPD_VHOST_CUSTOM_LOG="${HTTPD_ROOT}/logs/projects/vhosts_access.fifo"
+    export HTTPD_VHOST_ERROR_LOG="${HTTPD_ROOT}/logs/projects/vhosts_errors.fifo"
+    :
+    export DNSMASQ_LOG="${HTTPD_ROOT}/logs/dnsmasq.fifo"
+
+
     [[ ! -p $HTTPD_CUSTOM_LOG ]] && \
-        mkfifo "${HTTPD_CUSTOM_LOG}"
+        sudo -u "${HTTPD_USER}" mkfifo "${HTTPD_CUSTOM_LOG}"
     exec 3<> "${HTTPD_CUSTOM_LOG}"; printf '%s\n' "Now logging ..."  >&3
     :
-    export HTTPD_ERROR_LOG="${HTTPD_ROOT}/logs/error.fifo"
     [[ ! -p $HTTPD_ERROR_LOG ]] && \
-        mkfifo "${HTTPD_ERROR_LOG}"
-    #sudo -u "${HTTPD_USER}" mkfifo "${HTTPD_ERROR_LOG}"
+        sudo -u "${HTTPD_USER}" mkfifo "${HTTPD_ERROR_LOG}"
     exec 4<> "${HTTPD_ERROR_LOG}"
     :
-    export HTTPD_VHOST_CUSTOM_LOG="${HTTPD_ROOT}/logs/projects/vhosts_access.fifo"
     [[ ! -p $HTTPD_VHOST_CUSTOM_LOG ]] &&
         sudo -u "${HTTPD_USER}" mkfifo "${HTTPD_VHOST_CUSTOM_LOG}"
     exec 5<> "${HTTPD_VHOST_CUSTOM_LOG}"
     :
-    export HTTPD_VHOST_ERROR_LOG="${HTTPD_ROOT}/logs/projects/vhosts_errors.fifo"
     [[ ! -p $HTTPD_VHOST_ERROR_LOG ]] &&
         sudo -u "${HTTPD_USER}" mkfifo "${HTTPD_VHOST_ERROR_LOG}"
     exec 6<> "${HTTPD_VHOST_ERROR_LOG}"
 
-    DNSMASQ_LOG="${HTTPD_ROOT}/logs/dnsmasq.fifo"
     [[ ! -p $DNSMASQ_LOG ]] &&
         sudo -u "${HTTPD_USER}" mkfifo "${DNSMASQ_LOG}"
     exec 7<> "${DNSMASQ_LOG}"
 }
-
 
 export HTTPD_SERVER_NAME="prometheus"
 
@@ -133,6 +146,7 @@ MASQ ()
         # daemon mode
         #"${DNSMASQ}" --log-queries -C "${DNSMASQ_CONFIG}" -x "${DNSMASQ_PID}"
         # non-daemon-mode
+        echo "${DNSMASQ_LOG}";exit
         "${DNSMASQ}" --log-queries --log-facility=- -C "${DNSMASQ_CONFIG}" --no-daemon  \
                      > "${DNSMASQ_LOG}" 1>&2
     fi
@@ -215,13 +229,6 @@ Test()
 #     wait
 # }
 
-Clean ()
-{
-    rm "${HTTPD_CUSTOM_LOG}" \
-       "${HTTPD_ERROR_LOG}" \
-       "${HTTPD_VHOST_CUSTOM_LOG}" \
-       "${HTTPD_VHOST_ERROR_LOG}"
-}
 # #
 # # Run
 # #
@@ -232,7 +239,7 @@ Run()
             gate;
             shift
             case $1 in
-                --masq)
+                -D|--dnsmasq)
                     MASQ
                     exit
                     ;;
@@ -240,6 +247,9 @@ Run()
                     HTTPD
                     exit
                     ;;
+                *)
+                    printf "Uknown parameter\\n"
+                    EXIT=1
             esac
             Start
             ;;
@@ -261,8 +271,10 @@ Run()
         --listen )
             Listen
             ;;
-        clean  ) Clean
-                 ;;
+        clean  )
+            gate
+            Destroy
+            ;;
         *      ) echo "Unknown option: try 'Start', 'Stop', 'Restart' or 'Test'";;
     esac
 }
@@ -274,10 +286,9 @@ Run()
 
 
 
-
+# Initiate logging.
+Logger
 #
-# Run a phase based on the selector
-#DNS
 Run "${@}"
 
 # watch 'pgrep dnsmasq | wc -l ; pgrep httpd | wc -l'
