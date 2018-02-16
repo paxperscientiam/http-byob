@@ -33,11 +33,18 @@ Destroy () {
         rm "${item}"
     done
     :
-    EXIT=102
+    X 102
 }
 trap Destroy SIGINT SIGQUIT
 :
+X() {
+    local EXIT
+    EXIT="${1:-0}"
+    exit "${EXIT}"
+}
 Msg () {
+    [[ "${#1}" -gt 0 ]] && printf '%s\n' "${1}" && return
+
     if [[ $EXIT -eq 0 ]]
     then
         printf '%s\n' "That went suprisingly well."
@@ -65,7 +72,7 @@ HTTPD_USER=$(logname)
 :
 # permission check
 gate() {
-    [[ $UID != 0 ]] && EXIT=101 && exit "${EXIT}"
+    [[ $UID != 0 ]] && X 101
 }
 :
 :
@@ -159,9 +166,13 @@ MASQ()
 
 HTTPD()
 {
+    Msg "Apache httpd serv"; X 0
+    [[ ! -x $HTTPD ]] && printf "Apache httpd server not found!\\n" && X 1
     if [[ ! -r $HTTPD_PID ]]
     then
-        [[ -x $HTTPD ]] && "${HTTPD}" -k start -f "${HTTPD_CONFIG}" &
+
+        :
+        "${HTTPD}" -k start -f "${HTTPD_CONFIG}" &
         printf '%s' "Hang on ... "
         wait
         printf '%s\n' "done."
@@ -227,8 +238,8 @@ Test()
     #-D DUMP_VHOSTS #| column -t
 
     printf '%s\n' "Now logging ..."  >&3
-    EXIT=0
-    exit "${EXIT}"
+
+    X 0
 }
 
 # Watch ()
@@ -249,16 +260,15 @@ Run()
             case $1 in
                 -D|--dnsmasq)
                     MASQ
-                    exit
+                    X 0
                     ;;
                 -H|---httpd)
                     HTTPD
-                    exit
+                    X 0
                     ;;
                 *)
                     printf "Uknown parameter\\n"
-                    EXIT=1
-                    exit "${EXIT}"
+                    X 1
             esac
             Start
             ;;
