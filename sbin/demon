@@ -68,6 +68,7 @@ trap Msg EXIT
 HTTPD="/opt/local/sbin/httpd"
 DNSMASQ="/opt/local/sbin/dnsmasq"
 APACHECTL="/opt/local/sbin/apachectl"
+eval exe=("${HTTPD} ${APACHECTL} ${DNSMASQ}")
 export HTTP_SERVER_ROOT="/opt/local"
 #################
 export HTTPD_USER
@@ -99,60 +100,9 @@ check() {
     [[ -r $_CWD/$file ]] && return 0
     return 1
 }
-
-
 :
-:
-
-# pass through variables
-export HTTPD_ROOT; HTTPD_ROOT=$(dirname "${_CWD}")
-export HTTPD_DOCUMENT_ROOT="${HTTPD_ROOT}/www"
-export PHP_ROOT="${HTTPD_ROOT}/etc/php72/"
-export DNSMASQ_PID="${HTTPD_ROOT}/var/run/dnsmasq.pid"
-export HTTPD_PID="${HTTPD_ROOT}/var/run/httpd.pid"
-:
-Logger()
-{
-    export HTTPD_CUSTOM_LOG="${HTTPD_ROOT}/logs/access.fifo"
-    export HTTPD_ERROR_LOG="${HTTPD_ROOT}/logs/error.fifo"
-    export HTTPD_VHOST_CUSTOM_LOG="${HTTPD_ROOT}/logs/projects/vhosts_access.fifo"
-    export HTTPD_VHOST_ERROR_LOG="${HTTPD_ROOT}/logs/projects/vhosts_errors.fifo"
-    :
-    export DNSMASQ_LOG="${HTTPD_ROOT}/logs/dnsmasq.fifo"
-
-
-    [[ ! -p $HTTPD_CUSTOM_LOG ]] && \
-        sudo -u "${HTTPD_USER}" mkfifo "${HTTPD_CUSTOM_LOG}"
-    # correct syntax for opening pipe for read/write
-    exec 3<> "${HTTPD_CUSTOM_LOG}"; printf '%s\n' "Now logging ..."  >&3
-    :
-    [[ ! -p $HTTPD_ERROR_LOG ]] && \
-        sudo -u "${HTTPD_USER}" mkfifo "${HTTPD_ERROR_LOG}"
-    exec 4<> "${HTTPD_ERROR_LOG}"
-    :
-    [[ ! -p $HTTPD_VHOST_CUSTOM_LOG ]] &&
-        sudo -u "${HTTPD_USER}" mkfifo "${HTTPD_VHOST_CUSTOM_LOG}"
-    exec 5<> "${HTTPD_VHOST_CUSTOM_LOG}"
-    :
-    [[ ! -p $HTTPD_VHOST_ERROR_LOG ]] &&
-        sudo -u "${HTTPD_USER}" mkfifo "${HTTPD_VHOST_ERROR_LOG}"
-    exec 6<> "${HTTPD_VHOST_ERROR_LOG}"
-
-    [[ ! -p $DNSMASQ_LOG ]] &&
-        sudo -u "${HTTPD_USER}" mkfifo "${DNSMASQ_LOG}"
-    exec 7<> "${DNSMASQ_LOG}"
-}
-
-export HTTPD_SERVER_NAME="prometheus"
-
-# Configs
-HTTPD_CONFIG="${HTTPD_ROOT}/conf/httpd.conf"
-DNSMASQ_CONFIG="${HTTPD_ROOT}/etc/dnsmasq.conf"
-
-# unncessary
-#PHP_CONFIG="${PHP_ROOT}/php-dev.ini"
-:
-
+source "${_CWD}/lib/env"
+source "${_CWD}/lib/logger"
 # before starting, make sure dnsmasq already running
 
 MASQ()
@@ -242,7 +192,7 @@ Restart()
 
 Test()
 {
-    printf 'executables:\n%s\n%s\n%s\n\n' "${HTTPD}" "${APACHECTL}" "${DNSMASQ}"
+    printf '%s\n' "${exe[@]}"
 
     printf '%s\n' "${HTTPD_ROOT}"
 

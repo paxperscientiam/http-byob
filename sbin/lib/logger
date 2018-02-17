@@ -1,0 +1,31 @@
+Logger()
+{
+    export HTTPD_CUSTOM_LOG="${HTTPD_ROOT}/logs/access.fifo"
+    export HTTPD_ERROR_LOG="${HTTPD_ROOT}/logs/error.fifo"
+    export HTTPD_VHOST_CUSTOM_LOG="${HTTPD_ROOT}/logs/projects/vhosts_access.fifo"
+    export HTTPD_VHOST_ERROR_LOG="${HTTPD_ROOT}/logs/projects/vhosts_errors.fifo"
+    :
+    export DNSMASQ_LOG="${HTTPD_ROOT}/logs/dnsmasq.fifo"
+
+
+    [[ ! -p $HTTPD_CUSTOM_LOG ]] && \
+        sudo -u "${HTTPD_USER}" mkfifo "${HTTPD_CUSTOM_LOG}"
+    # correct syntax for opening pipe for read/write
+    exec 3<> "${HTTPD_CUSTOM_LOG}"; printf '%s\n' "Now logging ..."  >&3
+    :
+    [[ ! -p $HTTPD_ERROR_LOG ]] && \
+        sudo -u "${HTTPD_USER}" mkfifo "${HTTPD_ERROR_LOG}"
+    exec 4<> "${HTTPD_ERROR_LOG}"
+    :
+    [[ ! -p $HTTPD_VHOST_CUSTOM_LOG ]] &&
+        sudo -u "${HTTPD_USER}" mkfifo "${HTTPD_VHOST_CUSTOM_LOG}"
+    exec 5<> "${HTTPD_VHOST_CUSTOM_LOG}"
+    :
+    [[ ! -p $HTTPD_VHOST_ERROR_LOG ]] &&
+        sudo -u "${HTTPD_USER}" mkfifo "${HTTPD_VHOST_ERROR_LOG}"
+    exec 6<> "${HTTPD_VHOST_ERROR_LOG}"
+
+    [[ ! -p $DNSMASQ_LOG ]] &&
+        sudo -u "${HTTPD_USER}" mkfifo "${DNSMASQ_LOG}"
+    exec 7<> "${DNSMASQ_LOG}"
+}
