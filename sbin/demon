@@ -30,7 +30,7 @@ Destroy () {
                      "${HTTPD_VHOST_ERROR_LOG}" \
                      "${DNSMASQ_LOG}"
     do
-        rm "${item}"
+        rm "${item}" >/dev/null 2>&1
     done
     :
     X 102
@@ -43,7 +43,7 @@ X() {
     exit "${EXIT}"
 }
 Msg () {
-    [[ "${#1}" -gt 0 ]] && printf '%s\n' "${1}" && return
+    [[ "${#1}" -gt 0 ]] && printf '%s\n\n' "${1}" && return
 
     if [[ $EXIT -eq 0 ]]
     then
@@ -51,6 +51,9 @@ Msg () {
     elif [[ $EXIT -eq 1  ]]
     then
         printf '%s\n' "Error"
+    elif [[ $EXIT -eq 100 ]]
+    then
+        :
     elif [[ $EXIT -eq 101 ]]
     then
         printf '%s\n' "Please run this script with sudo."
@@ -154,28 +157,39 @@ DNSMASQ_CONFIG="${HTTPD_ROOT}/etc/dnsmasq.conf"
 
 MASQ()
 {
+    [[ ! -x $DNSMASQ ]] && Msg "Dnsmasq not found" && X 1
+    :
     if [[ ! -r $DNSMASQ_PID ]]
     then
         "${DNSMASQ}" --user="${HTTPD_USER}" --log-queries \
-                     --log-facility="${DNSMASQ_LOG}" -C "${DNSMASQ_CONFIG}" -D  \
-                     >/dev/null 2>&1
-
-
+                     --log-facility="${DNSMASQ_LOG}" -C "${DNSMASQ_CONFIG}"  \
+                     -x "${DNSMASQ_PID}" \
+                     >/dev/null 2>&1 &
+        printf '%s' "Hang on ... "
+        wait
+        printf '%s\n' "done."
+    else
+        read -r pid < "${DNSMASQ_PID}"
+        Msg "Dnsmasq seems to be running. ($pid)"
+        X 100
     fi
 }
 
 HTTPD()
 {
-    Msg "Apache httpd serv"; X 0
-    [[ ! -x $HTTPD ]] && printf "Apache httpd server not found!\\n" && X 1
+    [[ ! -x $HTTPD ]] && Msg "Apache httpd server not found" && X 1
+    :
     if [[ ! -r $HTTPD_PID ]]
     then
-
         :
         "${HTTPD}" -k start -f "${HTTPD_CONFIG}" &
         printf '%s' "Hang on ... "
         wait
         printf '%s\n' "done."
+    else
+        read -r pid < "${HTTPD_PID}"
+        Msg "httpd seems to be running. ($pid)"
+        X 100
     fi
 }
 
