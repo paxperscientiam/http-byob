@@ -16,20 +16,6 @@ Destroy () {
 
     gate
 
-    if [[ -r $HTTPD_PID ]]; then
-        read -r pid < "${HTTPD_PID}"
-        kill "${pid}" &
-        wait
-        rm "${HTTPD_PID}"
-    fi
-
-    if [[ -r $DNSMASQ_PID ]]; then
-        read -r pid < "${DNSMASQ_PID}"
-        kill "${pid}" &
-        wait
-        rm "${DNSMASQ_PID}"
-    fi
-
     for item in  "${HTTPD_CUSTOM_LOG}" \
                      "${HTTPD_ERROR_LOG}" \
                      "${HTTPD_VHOST_CUSTOM_LOG}" \
@@ -126,7 +112,7 @@ MASQ()
                      --pid-file="${DNSMASQ_PID}" \
                      --resolv-file="${DNS_RESOLV}" \
                      >/dev/null 2>&1 &
-        printf '%s' "Hang on ... "
+        printf '%s' $'Starting `dnsmasq` ... '
         wait
         printf '%s\n' "done."
     else
@@ -144,7 +130,7 @@ HTTPD()
     then
         :
         "${HTTPD}" -k start -f "${HTTPD_CONFIG}" &
-        printf '%s' "Hang on ... "
+        printf '%s' $'Staring `httpd` ... '
         wait
         printf '%s\n' "done."
     else
@@ -178,6 +164,7 @@ Start()
     MASQ &
     wait
     HTTPD &
+    wait
 }
 
 #
@@ -185,8 +172,10 @@ Start()
 #
 Stop()
 {
-    "${APACHECTL}" -f "${HTTPD_CONFIG}" -k stop > /dev/null 2>&1
-    pkill -9 -F "${DNSMASQ_PID}" dnsmasq
+    "${APACHECTL}" -f "${HTTPD_CONFIG}" -k stop > /dev/null 2>&1 &
+    wait
+    pkill -9 -F "${DNSMASQ_PID}" dnsmasq &
+    wait
 
 	  # if [[ -r $HTTPD_PID  ]]; then
     #     "${APACHECTL}" -f "${HTTPD_CONFIG}" -k stop > /dev/null 2>&1
