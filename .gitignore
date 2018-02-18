@@ -2,6 +2,6 @@ logs/
 www/
 ssl/
 var/run/
-
+*.bak
 
 .DS_Store
