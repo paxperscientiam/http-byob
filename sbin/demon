@@ -3,7 +3,7 @@ shopt -s extglob
 shopt -s nullglob
 #set -x
 :
-Destroy () {
+Destroy() {
     if [[ $STATE == "LISTEN" ]]
     then
         exec 3>&-
@@ -111,6 +111,7 @@ MASQ()
                      --conf-file="${DNSMASQ_CONFIG}"  \
                      --pid-file="${DNSMASQ_PID}" \
                      --resolv-file="${DNS_RESOLV}" \
+                     --cache-size=0 \
                      >/dev/null 2>&1 &
         printf '%s' $'Starting `dnsmasq` ... '
         wait
@@ -145,10 +146,10 @@ Listen()
 {
     STATE="LISTEN"
     case $1 in
-        dns)
+        -D|--dns)
             cat "${DNSMASQ_LOG}"
             ;;
-        access|httpd)
+        -H|--access|--httpd)
             cat "${HTTPD_CUSTOM_LOG}"
             ;;
         *)
@@ -249,16 +250,13 @@ Run()
             gate
             Restart
             ;;
-        -t|--test   )
+        test   )
             gate
             Test
             ;;
-        --listen|--watch)
+        listen|watch)
             shift
             Listen "${@}"
-            ;;
-        --listen )
-            Listen
             ;;
         clean  )
             gate
