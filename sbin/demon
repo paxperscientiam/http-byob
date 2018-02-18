@@ -4,7 +4,18 @@ shopt -s nullglob
 #set -x
 :
 Destroy () {
+    if [[ $STATE == "LISTEN" ]]
+    then
+        exec 3>&-
+        exec 4>&-
+        exec 5>&-
+        exec 6>&-
+        exec 7>&-
+        X 103
+    fi
+
     gate
+
     if [[ -r $HTTPD_PID ]]; then
         read -r pid < "${HTTPD_PID}"
         kill "${pid}" &
@@ -18,11 +29,6 @@ Destroy () {
         wait
         rm "${DNSMASQ_PID}"
     fi
-    exec 3>&-
-    exec 4>&-
-    exec 5>&-
-    exec 6>&-
-    exec 7>&-
 
     for item in  "${HTTPD_CUSTOM_LOG}" \
                      "${HTTPD_ERROR_LOG}" \
@@ -38,7 +44,6 @@ Destroy () {
 trap Destroy SIGINT SIGQUIT
 :
 X() {
-    local EXIT
     EXIT="${1:-0}"
     exit "${EXIT}"
 }
@@ -60,6 +65,9 @@ Msg () {
     elif [[ $EXIT -eq 102 ]]
     then
         printf '%s\n' "Cleanup is complete."
+    elif [[ $EXIT -eq 103 ]]
+    then
+        printf '%s\n' "Logger closed."
     fi
 }
 trap Msg EXIT
@@ -111,9 +119,12 @@ MASQ()
     :
     if [[ ! -r $DNSMASQ_PID ]]
     then
-        "${DNSMASQ}" --user="${HTTPD_USER}" --log-queries \
-                     --log-facility="${DNSMASQ_LOG}" -C "${DNSMASQ_CONFIG}"  \
-                     -x "${DNSMASQ_PID}" \
+        "${DNSMASQ}" --user="${HTTPD_USER}" \
+                     --log-queries \
+                     --log-facility="${DNSMASQ_LOG}" \
+                     --conf-file="${DNSMASQ_CONFIG}"  \
+                     --pid-file="${DNSMASQ_PID}" \
+                     --resolv-file="${DNS_RESOLV}" \
                      >/dev/null 2>&1 &
         printf '%s' "Hang on ... "
         wait
@@ -146,9 +157,20 @@ HTTPD()
 
 Listen()
 {
-    cat "${DNSMASQ_LOG}" &
-    cat "${HTTPD_CUSTOM_LOG}" &
-    wait
+    STATE="LISTEN"
+    case $1 in
+        dns)
+            cat "${DNSMASQ_LOG}"
+            ;;
+        access|httpd)
+            cat "${HTTPD_CUSTOM_LOG}"
+            ;;
+        *)
+            Msg "Unknown log."
+            X 1
+            ;;
+    esac
+    #    wait
     #cat "${HTTPD_ERROR_LOG}"
 
     #cat "${HTTPD_ERROR_LOG}" &
@@ -171,13 +193,14 @@ Start()
 #
 Stop()
 {
-	  if [[ -r $HTTPD_PID ]]; then
+    "${APACHECTL}" -f "${HTTPD_CONFIG}" -k stop > /dev/null 2>&1
+	  if [[ -r $HTTPD_PID  ]]; then
         "${APACHECTL}" -f "${HTTPD_CONFIG}" -k stop > /dev/null 2>&1
     else
         echo "No active httpd process found."
     fi
 
-    if [ -r "${DNSMASQ_PID}" ]; then
+    if [[ -r "${DNSMASQ_PID}" ]]; then
         pkill dnsmasq
     else
         echo "No active dnsmasq process found."
@@ -201,7 +224,7 @@ Test()
     "${APACHECTL}" -f "${HTTPD_CONFIG}" -t
     #-D DUMP_VHOSTS #| column -t
 
-    printf '%s\n' "Now logging ..."  >&3
+    printf '%s\n' "Now listening ..."  >&3
 
     X 0
 }
@@ -226,19 +249,17 @@ Run()
                     MASQ
                     X 0
                     ;;
-                -H|---httpd)
+                -H|--httpd)
                     HTTPD
                     X 0
                     ;;
-                *)
-                    printf "Uknown parameter\\n"
-                    X 1
             esac
             Start
             ;;
         stop   )
             gate
-            Stop
+            shift
+            Stop "${@}"
             ;;
         restart)
             gate
@@ -248,8 +269,9 @@ Run()
             gate
             Test
             ;;
-        --watch  )
-            Listen
+        --listen|--watch)
+            shift
+            Listen "${@}"
             ;;
         --listen )
             Listen

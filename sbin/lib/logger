@@ -1,3 +1,5 @@
+# -*- mode:shell-script -*-
+
 Logger()
 {
     export HTTPD_CUSTOM_LOG="${HTTPD_ROOT}/logs/access.fifo"
@@ -11,21 +13,28 @@ Logger()
     [[ ! -p $HTTPD_CUSTOM_LOG ]] && \
         sudo -u "${HTTPD_USER}" mkfifo "${HTTPD_CUSTOM_LOG}"
     # correct syntax for opening pipe for read/write
-    exec 3<> "${HTTPD_CUSTOM_LOG}"; printf '%s\n' "Now logging ..."  >&3
-    :
+    exec 3<> "${HTTPD_CUSTOM_LOG}";
+    printf '%s\n' $'Now logging `HTTPD` for access ... '  >&3
+
+
     [[ ! -p $HTTPD_ERROR_LOG ]] && \
         sudo -u "${HTTPD_USER}" mkfifo "${HTTPD_ERROR_LOG}"
-    exec 4<> "${HTTPD_ERROR_LOG}"
-    :
+    exec 4<> "${HTTPD_ERROR_LOG}"; printf '%s\n' "Now logging ..."  >&4
+
+
     [[ ! -p $HTTPD_VHOST_CUSTOM_LOG ]] &&
         sudo -u "${HTTPD_USER}" mkfifo "${HTTPD_VHOST_CUSTOM_LOG}"
-    exec 5<> "${HTTPD_VHOST_CUSTOM_LOG}"
-    :
+    exec 5<> "${HTTPD_VHOST_CUSTOM_LOG}"; printf '%s\n' "Now logging ..."  >&5
+
+
     [[ ! -p $HTTPD_VHOST_ERROR_LOG ]] &&
         sudo -u "${HTTPD_USER}" mkfifo "${HTTPD_VHOST_ERROR_LOG}"
-    exec 6<> "${HTTPD_VHOST_ERROR_LOG}"
+    exec 6<> "${HTTPD_VHOST_ERROR_LOG}";
+    printf '%s\n' $'Now logging `HTTPD` for virtual host errors ...'  >&6
+
 
     [[ ! -p $DNSMASQ_LOG ]] &&
         sudo -u "${HTTPD_USER}" mkfifo "${DNSMASQ_LOG}"
-    exec 7<> "${DNSMASQ_LOG}"
+    exec 7<> "${DNSMASQ_LOG}";
+    printf '%s\n' $'Now logging `dnsmasq` ...'  >&7
 }

@@ -8,6 +8,7 @@ export PHP_ROOT="${HTTPD_ROOT}/etc/php72/"
 export DNSMASQ_PID="${HTTPD_ROOT}/var/run/dnsmasq.pid"
 export HTTPD_PID="${HTTPD_ROOT}/var/run/httpd.pid"
 :
+export DNS_RESOLV="${HTTPD_ROOT}/etc/resolv.conf"
 
 export HTTPD_SERVER_NAME="prometheus"
 
