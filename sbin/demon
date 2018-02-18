@@ -14,8 +14,6 @@ Destroy() {
         X 103
     fi
 
-    gate
-
     for item in  "${HTTPD_CUSTOM_LOG}" \
                      "${HTTPD_ERROR_LOG}" \
                      "${HTTPD_VHOST_CUSTOM_LOG}" \
@@ -175,20 +173,20 @@ Stop()
 {
     "${APACHECTL}" -f "${HTTPD_CONFIG}" -k stop > /dev/null 2>&1 &
     wait
-    pkill -9 -F "${DNSMASQ_PID}" dnsmasq &
+    pkill -9 -F "${DNSMASQ_PID}" dnsmasq >/dev/null 2>&1 &
     wait
 
-	  # if [[ -r $HTTPD_PID  ]]; then
-    #     "${APACHECTL}" -f "${HTTPD_CONFIG}" -k stop > /dev/null 2>&1
-    # else
-    #     echo "No active httpd process found."
-    # fi
+	  if [[ -r $HTTPD_PID  ]]; then
+        rm "${HTTPD_PID}"
+    else
+        echo "No active httpd process found."
+    fi
 
-    # if [[ -r "${DNSMASQ_PID}" ]]; then
-    #     pkill -9 -F "${DNSMASQ_PID}" dnsmasq
-    # else
-    #     echo "No active dnsmasq process found."
-    # fi
+    if [[ -r "${DNSMASQ_PID}" ]]; then
+        rm "${DNSMASQ_PID}"
+    else
+        echo "No active dnsmasq process found."
+    fi
 
     Destroy
 }
@@ -214,15 +212,17 @@ Test()
     X 0
 }
 
-# Watch ()
-# {
-#     cat  "${HTTPD_ERROR_LOG}" &
-#     wait
-# }
+Status() {
+    local args
 
-# #
-# # Run
-# #
+    read -r tmp1 < "${DNSMASQ_PID}"
+    mapfile -t tmp2 < <(pgrep httpd)
+
+    proc=($tmp1 ${tmp2[*]})
+    printf -v args '%s' "${proc[@]/#/ \-pid }"
+    \top -u -s 2 -stats command,pid,pgrp,ppid,uid $args
+}
+
 Run()
 {
     case $1 in
@@ -262,7 +262,13 @@ Run()
             gate
             Destroy
             ;;
-        *      ) echo "Unknown option: try 'Start', 'Stop', 'Restart' or 'Test'";;
+        status)
+            Status
+            ;;
+        *      )
+            echo "Unknown option: try 'Start', 'Stop', 'Restart' or 'Test'"
+            X 1
+            ;;
     esac
 }
 
