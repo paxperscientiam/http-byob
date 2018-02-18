@@ -272,16 +272,7 @@ Run()
     esac
 }
 
-### some prep stuff
-# /bin/launchctl \
-    #     unload -w \
-    #     /System/Library/LaunchDaemons/org.apache.httpd.plist &> /dev/null
-
-
-
 # Initiate logging.
 Logger
 #
 Run "${@}"
-
-# watch 'pgrep dnsmasq | wc -l ; pgrep httpd | wc -l'
