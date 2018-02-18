@@ -170,21 +170,13 @@ Listen()
             X 1
             ;;
     esac
-    #    wait
-    #cat "${HTTPD_ERROR_LOG}"
-
-    #cat "${HTTPD_ERROR_LOG}" &
-    # Open pipe for writing.
-
-    # Write to pipe
-    #ping oddworld.com >&3
-    #wait
 }
 
 # Start
 Start()
 {
     MASQ &
+    wait
     HTTPD &
 }
 
@@ -194,17 +186,20 @@ Start()
 Stop()
 {
     "${APACHECTL}" -f "${HTTPD_CONFIG}" -k stop > /dev/null 2>&1
-	  if [[ -r $HTTPD_PID  ]]; then
-        "${APACHECTL}" -f "${HTTPD_CONFIG}" -k stop > /dev/null 2>&1
-    else
-        echo "No active httpd process found."
-    fi
+    pkill -9 -F "${DNSMASQ_PID}" dnsmasq
 
-    if [[ -r "${DNSMASQ_PID}" ]]; then
-        pkill dnsmasq
-    else
-        echo "No active dnsmasq process found."
-    fi
+	  # if [[ -r $HTTPD_PID  ]]; then
+    #     "${APACHECTL}" -f "${HTTPD_CONFIG}" -k stop > /dev/null 2>&1
+    # else
+    #     echo "No active httpd process found."
+    # fi
+
+    # if [[ -r "${DNSMASQ_PID}" ]]; then
+    #     pkill -9 -F "${DNSMASQ_PID}" dnsmasq
+    # else
+    #     echo "No active dnsmasq process found."
+    # fi
+
     Destroy
 }
 
