@@ -1,6 +1,33 @@
 Under heavy development. Use it at your own peril.
 
-`sudo sbin/demon start`
+What is?
+===
+`http-byob` is my little attempt at creating a faux container. All it is, however, is a script for running `dnsmasq` and verstion 2.4 of Apache's `httpd` web server.
+
+I've separated a lot of `httpd` configuration settings into variables stored in the `bash` script `sbin/demon`. At some point, I will entirely separate configuration options. Same with `dnsmasq` configuration, eventually.
+
+
+Requirements:
+* `bash`
+* `httpd` v2.4
+* `dnsmasq`
+
+
+Usage
+===
+Oh shoot, I need to add a help menu!
+
+Start:
+* `sudo sbin/demon start`
+
+Stop:
+* `sudo sbin/demon stop`
+
+I decided to use named pipe for handling logging. That way, I think, disk access is limited.
+
+In order to actually watch the logs, do one of the following:
+* `sbin/demon --watch dns`
+* `sbin/demon --watch httpd`
 
 
 If by some miracle you are able to get this to work, this repo includes an example site that you load in your browser:
