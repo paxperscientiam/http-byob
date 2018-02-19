@@ -61,10 +61,7 @@ HTTPD="/opt/local/sbin/httpd"
 DNSMASQ="/opt/local/sbin/dnsmasq"
 APACHECTL="/opt/local/sbin/apachectl"
 eval exe=("${HTTPD} ${APACHECTL} ${DNSMASQ}")
-export HTTP_SERVER_ROOT="/opt/local"
 #################
-export HTTPD_USER
-HTTPD_USER=$(logname)
 :
 # permission check
 gate() {
@@ -103,7 +100,7 @@ MASQ()
     :
     if [[ ! -r $DNSMASQ_PID ]]
     then
-        "${DNSMASQ}" --user="${HTTPD_USER}" \
+        "${DNSMASQ}" \
                      --log-queries \
                      --log-facility="${DNSMASQ_LOG}" \
                      --conf-file="${DNSMASQ_CONFIG}"  \

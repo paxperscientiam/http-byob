@@ -1,9 +1,13 @@
 # -*- mode:shell-script -*-
 
+export HTTPD_USER
+HTTPD_USER=$(logname)
+
 
 # pass through variables
+export HTTP_SERVER_ROOT="/opt/local"
 export HTTPD_ROOT; HTTPD_ROOT=$(dirname "${_CWD}")
-export HTTPD_DOCUMENT_ROOT="${HTTPD_ROOT}/www"
+export HTTPD_DOCUMENT_ROOT="${HTTPD_ROOT}/www/home/wwwroot"
 export PHP_ROOT="${HTTPD_ROOT}/etc/php72/"
 export DNSMASQ_PID="${HTTPD_ROOT}/var/run/dnsmasq.pid"
 export HTTPD_PID="${HTTPD_ROOT}/var/run/httpd.pid"
@@ -18,3 +22,31 @@ DNSMASQ_CONFIG="${HTTPD_ROOT}/etc/dnsmasq.conf"
 
 # unncessary
 #PHP_CONFIG="${PHP_ROOT}/php-dev.ini"
+
+
+  # The install paths have been changed to no longer violate the MacPorts mtree:
+
+  #   1. The binaries are now under /opt/local/sbin/
+  #      (rather than under /opt/local/apache2/bin/)
+
+  #   2. The configure files are now under /opt/local/etc/apache2/
+  #      (rather than under /opt/local/apache2/conf/)
+
+  #   3. The modules are now under /opt/local/lib/apache2/modules/
+  #      (rather than under /opt/local/apache2/modules/)
+
+  #   4. The web root is now located under /opt/local/www/apache2/html/
+  #      (rather than under /opt/local/apache2/htdocs/)
+
+  #   5. The cgi-bin is now located under /opt/local/www/apache2/cgi-bin/
+  #      (rather than under /opt/local/apache2/cgi-bin/)
+
+  #   6. The logs are now located under /opt/local/var/log/apache2/
+  #      (rather than under /opt/local/apache2/logs/)
+
+  #   7. The manual is now located under /opt/local/www/apache2/manual/
+  #      (rather than under /opt/local/apache2/manual/)
+
+  #   8. The manual (man) pages are still at /opt/local/share/apache2/man/
+
+  #   You can move your htdocs and cgi-bin to the new locations, or edit /opt/local/etc/apache2/httpd.conf to point at the old locations.
