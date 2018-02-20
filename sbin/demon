@@ -33,7 +33,7 @@ X() {
     EXIT="${1:-0}"
     exit "${EXIT}"
 }
-Msg () {
+Msg() {
     [[ "${#1}" -gt 0 ]] && printf '%s\n\n' "${1}" && return
 
     if [[ $EXIT -eq 0 ]]
@@ -54,6 +54,12 @@ Msg () {
     elif [[ $EXIT -eq 103 ]]
     then
         printf '%s\n' "Logger closed."
+    elif [[ $EXIT -eq 104 ]]
+    then
+        printf '%s\n' "Dnsmasq stopped."
+    elif [[ $EXIT -eq 105 ]]
+    then
+        printf '%s\n' "httpd stopped."
     fi
 }
 trap Msg EXIT
@@ -172,24 +178,27 @@ Start()
 #
 Stop()
 {
-    "${APACHECTL}" -f "${HTTPD_CONFIG}" -k stop > /dev/null 2>&1 &
-    wait
-    pkill -9 -F "${DNSMASQ_PID}" dnsmasq >/dev/null 2>&1 &
-    wait
-
-	  if [[ -r $HTTPD_PID  ]]; then
-        rm "${HTTPD_PID}"
-    else
-        echo "No active httpd process found."
+    if [[ $1 == '-H' || "${#1}" -eq 0 ]]
+    then
+        "${APACHECTL}" -f "${HTTPD_CONFIG}" -k stop > /dev/null 2>&1 & wait
+        if [[ -r $HTTPD_PID  ]]; then
+            rm "${HTTPD_PID}" >/dev/null 2>&1
+        else
+            Msg "No httpd process found."
+        fi
     fi
 
-    if [[ -r "${DNSMASQ_PID}" ]]; then
-        rm "${DNSMASQ_PID}"
-    else
-        echo "No active dnsmasq process found."
+    if [[ $1 == '-D' || "${#1}" -eq 0 ]]
+    then
+        pkill -9 -F "${DNSMASQ_PID}" dnsmasq >/dev/null 2>&1 & wait
+        if [[ -r "${DNSMASQ_PID}" ]]; then
+            rm "${DNSMASQ_PID}" >/dev/null 2>&1
+        else
+            Msg "No dnsmasq process found."
+        fi
     fi
 
-    Destroy
+        Destroy
 }
 
 Restart()
@@ -245,15 +254,6 @@ Run()
         stop   )
             gate
             shift
-            case $1 in
-                -D)
-                    Masq --stop
-                    ;;
-                -H)
-                    HTTPD --stop
-                    ;;
-
-            esac
             Stop "${@}"
             ;;
         restart)
