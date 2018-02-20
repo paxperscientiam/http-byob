@@ -11,6 +11,8 @@ Destroy() {
         exec 5>&-
         exec 6>&-
         exec 7>&-
+        exec 8>&-
+        exec 9>&-
         X 103
     fi
 
@@ -107,6 +109,7 @@ MASQ()
             --conf-file="${DNSMASQ_CONFIG}"  \
             --pid-file="${DNSMASQ_PID}" \
             --resolv-file="${DNS_RESOLV}" \
+            --no-hosts \
             --cache-size=0 \
             >/dev/null 2>&1 &
         printf '%s' $'Starting `dnsmasq` ... '
@@ -242,6 +245,15 @@ Run()
         stop   )
             gate
             shift
+            case $1 in
+                -D)
+                    Masq --stop
+                    ;;
+                -H)
+                    HTTPD --stop
+                    ;;
+
+            esac
             Stop "${@}"
             ;;
         restart)
