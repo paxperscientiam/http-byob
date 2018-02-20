@@ -126,7 +126,7 @@ HTTPD()
     then
         :
         "${HTTPD}" -k start -f "${HTTPD_CONFIG}" &
-        printf '%s' $'Staring `httpd` ... '
+        printf '%s' $'Starting `httpd` ... '
         wait
         printf '%s\n' "done."
     else
