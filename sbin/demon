@@ -101,13 +101,14 @@ MASQ()
     if [[ ! -r $DNSMASQ_PID ]]
     then
         "${DNSMASQ}" \
-                     --log-queries \
-                     --log-facility="${DNSMASQ_LOG}" \
-                     --conf-file="${DNSMASQ_CONFIG}"  \
-                     --pid-file="${DNSMASQ_PID}" \
-                     --resolv-file="${DNS_RESOLV}" \
-                     --cache-size=0 \
-                     >/dev/null 2>&1 &
+            --log-queries \
+            --listen-address=127.0.0.1 \
+            --log-facility="${DNSMASQ_LOG}" \
+            --conf-file="${DNSMASQ_CONFIG}"  \
+            --pid-file="${DNSMASQ_PID}" \
+            --resolv-file="${DNS_RESOLV}" \
+            --cache-size=0 \
+            >/dev/null 2>&1 &
         printf '%s' $'Starting `dnsmasq` ... '
         wait
         printf '%s\n' "done."
