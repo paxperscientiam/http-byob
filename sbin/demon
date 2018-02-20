@@ -4,28 +4,25 @@ shopt -s nullglob
 #set -x
 :
 Destroy() {
-    if [[ $STATE == "LISTEN" ]]
+    if [[ $STATE == "CLEAN" ]]
     then
-        exec 3>&-
-        exec 4>&-
-        exec 5>&-
-        exec 6>&-
-        exec 7>&-
-        exec 8>&-
-        exec 9>&-
-        X 103
+        # exec 3>&-
+        # exec 4>&-
+        # exec 5>&-
+        # exec 6>&-
+        # exec 7>&-
+        # exec 8>&-
+        # exec 9>&-
+        for fifo in "${LOG_ROOT}"{/*,*/*/*}
+        do
+            [[ -p $fifo ]] && rm "${fifo}"
+        done
+        X 102
     fi
 
-    for item in  "${HTTPD_CUSTOM_LOG}" \
-                     "${HTTPD_ERROR_LOG}" \
-                     "${HTTPD_VHOST_CUSTOM_LOG}" \
-                     "${HTTPD_VHOST_ERROR_LOG}" \
-                     "${DNSMASQ_LOG}"
-    do
-        rm "${item}" >/dev/null 2>&1
-    done
-    :
-    X 102
+
+    [[ $STATE == 'LISTEN' ]] && \
+        X 103
 }
 trap Destroy SIGINT SIGQUIT
 :
@@ -269,6 +266,7 @@ Run()
             Listen "${@}"
             ;;
         clean  )
+            STATE=CLEAN
             gate
             Destroy
             ;;
