@@ -143,10 +143,16 @@ HTTPD()
     if [[ ! -r $HTTPD_PID ]]
     then
         :
-        "${HTTPD}" -k start -f "${HTTPD_CONFIG}" &
+
+
+        "${HTTPD}" -f "${HTTPD_CONFIG}" \
+                   -k start &
+
         printf '%s' $'Starting `httpd` ... '
         wait
+        echo $?
         printf '%s\n' "done."
+
     else
         read -r pid < "${HTTPD_PID}"
         Msg "httpd seems to be running. ($pid)"
@@ -170,7 +176,7 @@ Listen()
             X 106
             ;;
         *)
-            Msg "Unknown log."
+            Msg "Accepted flags are -D and -H."
             X 1
             ;;
     esac
