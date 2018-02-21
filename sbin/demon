@@ -117,7 +117,7 @@ MASQ()
             --user="${HTTPD_USER}" \
             --listen-address=127.0.0.1 \
             --address=/local/127.0.0.1 \
-            --log-facility="${DNSMASQ_LOG:--}" \
+            --log-facility="${DNSMASQ_LOG}" \
             --pid-file="${DNSMASQ_PID}" \
             --no-resolv \
             --no-hosts \
@@ -127,8 +127,6 @@ MASQ()
         printf '%s' $'Starting `dnsmasq` ... '
         wait
         printf '%s\n' "done."
-        EXIT=$?
-        echo $?;exit
     else
         read -r pid < "${DNSMASQ_PID}"
         Msg "Dnsmasq seems to be running. ($pid)"
@@ -143,8 +141,6 @@ HTTPD()
     if [[ ! -r $HTTPD_PID ]]
     then
         :
-
-
         "${HTTPD}" -f "${HTTPD_CONFIG}" \
                    -k start &
 

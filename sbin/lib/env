@@ -21,12 +21,13 @@ export DNS_HOSTS="${HTTPD_ROOT}/etc/hosts"
 export HTTPD_SERVER_NAME="prometheus"
 
 # Configs
-HTTPD_CONFIG="${HTTPD_ROOT}/conf/httpd.conf"
-DNSMASQ_CONFIG="${HTTPD_ROOT}/etc/dnsmasq.conf"
+export HTTPD_CONFIG="${HTTPD_ROOT}/conf/httpd.conf"
+export DNSMASQ_CONFIG="${HTTPD_ROOT}/etc/dnsmasq.conf"
 
 # back in case logging not used. still needed by apache
-export HTTPD_ERROR_LOG='/dev/null'
-export HTTPD_CUSTOM_LOG='/dev/null'
+export HTTPD_ERROR_LOG='syslog:local6'
+export HTTPD_CUSTOM_LOG="'|/usr/bin/logger -t apache -i -p local5.notice'"
+export DNSMASQ_LOG='local0'
 
 # unncessary
 #PHP_CONFIG="${PHP_ROOT}/php-dev.ini"
