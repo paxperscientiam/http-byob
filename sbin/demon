@@ -4,18 +4,19 @@ shopt -s nullglob
 #set -x
 :
 Destroy() {
+    exec 3>&-
+    exec 4>&-
+    exec 5>&-
+    exec 6>&-
+    exec 7>&-
+    exec 8>&-
+    exec 9>&-
+
     if [[ $STATE == "CLEAN" ]]
     then
-        exec 3>&-
-        exec 4>&-
-        exec 5>&-
-        exec 6>&-
-        exec 7>&-
-        exec 8>&-
-        exec 9>&-
         for fifo in "${LOG_ROOT}"/{*,*/**}
         do
-           [[ -p $fifo ]] && rm "${fifo}"
+            [[ -p $fifo ]] && rm "${fifo}"
         done
         X 102
     fi
@@ -108,11 +109,12 @@ MASQ()
         #             --keep-in-foreground
         "${DNSMASQ}" \
             --log-queries \
+            --log-async=5 \
             --stop-dns-rebind \
             --user="${HTTPD_USER}" \
             --listen-address=127.0.0.1 \
             --address=/local/127.0.0.1 \
-            --log-facility="${DNSMASQ_LOG}" \
+            --log-facility="${DNSMASQ_LOG:--}" \
             --pid-file="${DNSMASQ_PID}" \
             --no-resolv \
             --no-hosts \
@@ -122,6 +124,8 @@ MASQ()
         printf '%s' $'Starting `dnsmasq` ... '
         wait
         printf '%s\n' "done."
+        EXIT=$?
+        echo $?;exit
     else
         read -r pid < "${DNSMASQ_PID}"
         Msg "Dnsmasq seems to be running. ($pid)"
@@ -153,7 +157,9 @@ Listen()
     STATE="LISTEN"
     case $1 in
         -D|--dns)
-            cat "${DNSMASQ_LOG}"
+            cat "${DNSMASQ_LOG}" &
+            wait
+
             ;;
         -H|--access|--httpd)
             cat "${HTTPD_CUSTOM_LOG}"
@@ -199,7 +205,7 @@ Stop()
         fi
     fi
 
-        Destroy
+    Destroy
 }
 
 Restart()
@@ -237,7 +243,6 @@ Run()
     case $1 in
         start  )
             gate;
-            Logger
             shift
             case $1 in
                 -D|--dnsmasq)

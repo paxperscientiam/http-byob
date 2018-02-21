@@ -3,15 +3,17 @@
 Logger()
 {
 
-    export HTTPD_CUSTOM_LOG="${HTTPD_ROOT}/logs/access.fifo"
-    export HTTPD_ERROR_LOG="${HTTPD_ROOT}/logs/error.fifo"
-    export HTTPD_VHOST_CUSTOM_LOG="${HTTPD_ROOT}/logs/projects/vhosts_access.fifo"
-    export HTTPD_VHOST_ERROR_LOG="${HTTPD_ROOT}/logs/projects/vhosts_errors.fifo"
+    LOG_ROOT="${HTTPD_ROOT}/logs/"
+
+    export HTTPD_CUSTOM_LOG="${LOG_ROOT}/access.fifo"
+    export HTTPD_ERROR_LOG="${LOG_ROOT}/error.fifo"
+    export HTTPD_VHOST_CUSTOM_LOG="${LOG_ROOT}/projects/vhosts_access.fifo"
+    export HTTPD_VHOST_ERROR_LOG="${LOG_ROOT}/projects/vhosts_errors.fifo"
     :
-    export HTTPD_HOME_ACCESS="${HTTPD_ROOT}/logs/projects/home_access.fifo"
-    export HTTPD_HOME_ERRORS="${HTTPD_ROOT}/logs/projects/home_errors.fifo"
+    export HTTPD_HOME_ACCESS="${LOG_ROOT}/projects/home_access.fifo"
+    export HTTPD_HOME_ERRORS="${LOG_ROOT}/projects/home_errors.fifo"
     :
-    export DNSMASQ_LOG="${HTTPD_ROOT}/logs/dnsmasq.fifo"
+    export DNSMASQ_LOG="${LOG_ROOT}/dnsmasq.fifo"
 
 
     [[ ! -p $HTTPD_CUSTOM_LOG ]] && \
