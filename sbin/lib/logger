@@ -2,7 +2,6 @@
 
 Logger()
 {
-    export LOG_ROOT="${HTTPD_ROOT}/logs"
 
     export HTTPD_CUSTOM_LOG="${HTTPD_ROOT}/logs/access.fifo"
     export HTTPD_ERROR_LOG="${HTTPD_ROOT}/logs/error.fifo"

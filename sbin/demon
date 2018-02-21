@@ -13,13 +13,12 @@ Destroy() {
         exec 7>&-
         exec 8>&-
         exec 9>&-
-        for fifo in "${LOG_ROOT}"{/*,*/*/*}
+        for fifo in "${LOG_ROOT}"/{*,*/**}
         do
-            [[ -p $fifo ]] && rm "${fifo}"
+           [[ -p $fifo ]] && rm "${fifo}"
         done
         X 102
     fi
-
 
     [[ $STATE == 'LISTEN' ]] && \
         X 103
@@ -170,9 +169,7 @@ Listen()
 Start()
 {
     MASQ &
-    wait
     HTTPD &
-    wait
 }
 
 #
@@ -240,6 +237,7 @@ Run()
     case $1 in
         start  )
             gate;
+            Logger
             shift
             case $1 in
                 -D|--dnsmasq)
@@ -286,6 +284,5 @@ Run()
 }
 
 # Initiate logging.
-Logger
 #
 Run "${@}"

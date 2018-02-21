@@ -24,6 +24,10 @@ export HTTPD_SERVER_NAME="prometheus"
 HTTPD_CONFIG="${HTTPD_ROOT}/conf/httpd.conf"
 DNSMASQ_CONFIG="${HTTPD_ROOT}/etc/dnsmasq.conf"
 
+
+export LOG_ROOT="${HTTPD_ROOT}/logs/"
+
+
 # unncessary
 #PHP_CONFIG="${PHP_ROOT}/php-dev.ini"
 
