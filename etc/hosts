@@ -1,0 +1,5 @@
+# Custom host records are listed here.
+0.0.0.0 prometheus.local
+0.0.0.0 prometheus
+
+# End of custom host records.

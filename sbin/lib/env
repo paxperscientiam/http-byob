@@ -16,6 +16,7 @@ export DNSMASQ_PID="${HTTPD_ROOT}/var/run/dnsmasq.pid"
 export HTTPD_PID="${HTTPD_ROOT}/var/run/httpd.pid"
 :
 export DNS_RESOLV="${HTTPD_ROOT}/etc/resolv.conf"
+export DNS_HOSTS="${HTTPD_ROOT}/etc/hosts"
 
 export HTTPD_SERVER_NAME="prometheus"
 

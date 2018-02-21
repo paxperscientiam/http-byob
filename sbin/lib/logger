@@ -16,44 +16,44 @@ Logger()
 
 
     [[ ! -p $HTTPD_CUSTOM_LOG ]] && \
-        sudo -u "${HTTPD_USER}" mkfifo "${HTTPD_CUSTOM_LOG}" &&
-        exec 3<> "${HTTPD_CUSTOM_LOG}" &&
+        sudo -u "${HTTPD_USER}" mkfifo "${HTTPD_CUSTOM_LOG}"
+    exec 3<> "${HTTPD_CUSTOM_LOG}" &&
         printf '%s\n' $'Now logging `HTTPD` for access ... '  >&3
 
 
     [[ ! -p $HTTPD_ERROR_LOG ]] && \
-        sudo -u "${HTTPD_USER}" mkfifo "${HTTPD_ERROR_LOG}" &&
-        exec 4<> "${HTTPD_ERROR_LOG}" &&
+        sudo -u "${HTTPD_USER}" mkfifo "${HTTPD_ERROR_LOG}"
+    exec 4<> "${HTTPD_ERROR_LOG}" &&
         printf '%s\n' "Now logging ..."  >&4
 
 
     [[ ! -p $HTTPD_VHOST_CUSTOM_LOG ]] &&
-        sudo -u "${HTTPD_USER}" mkfifo "${HTTPD_VHOST_CUSTOM_LOG}" &&
-        exec 5<> "${HTTPD_VHOST_CUSTOM_LOG}" &&
+        sudo -u "${HTTPD_USER}" mkfifo "${HTTPD_VHOST_CUSTOM_LOG}"
+    exec 5<> "${HTTPD_VHOST_CUSTOM_LOG}" &&
         printf '%s\n' "Now logging ..."  >&5
 
 
     [[ ! -p $HTTPD_VHOST_ERROR_LOG ]] &&
-        sudo -u "${HTTPD_USER}" mkfifo "${HTTPD_VHOST_ERROR_LOG}" &&
-        exec 6<> "${HTTPD_VHOST_ERROR_LOG}" &&
+        sudo -u "${HTTPD_USER}" mkfifo "${HTTPD_VHOST_ERROR_LOG}"
+    exec 6<> "${HTTPD_VHOST_ERROR_LOG}" &&
         printf '%s\n' $'Now logging `HTTPD` for virtual host errors ...'  >&6
 
 
     [[ ! -p $DNSMASQ_LOG ]] &&
-        sudo -u "${HTTPD_USER}" mkfifo "${DNSMASQ_LOG}" &&
-        exec 7<> "${DNSMASQ_LOG}" &&
+        sudo -u "${HTTPD_USER}" mkfifo "${DNSMASQ_LOG}"
+    exec 7<> "${DNSMASQ_LOG}" &&
         printf '%s\n' $'Now logging `dnsmasq` ...'  >&7
 
 
     [[ ! -p $HTTPD_HOME_ACCESS ]] &&
-        sudo -u "${HTTPD_USER}" mkfifo "${HTTPD_HOME_ACCESS}" &&
-        exec 8<> "${HTTPD_HOME_ACCESS}" &&
+        sudo -u "${HTTPD_USER}" mkfifo "${HTTPD_HOME_ACCESS}"
+    exec 8<> "${HTTPD_HOME_ACCESS}" &&
         printf '%s\n' $'Now logging `home.local` ...'  >&8
 
 
     [[ ! -p $HTTPD_HOME_ERRORS ]] &&
-        sudo -u "${HTTPD_USER}" mkfifo "${HTTPD_HOME_ERRORS}" &&
-        exec 9<> "${HTTPD_HOME_ERRORS}" &&
+        sudo -u "${HTTPD_USER}" mkfifo "${HTTPD_HOME_ERRORS}"
+    exec 9<> "${HTTPD_HOME_ERRORS}" &&
         printf '%s\n' $'Now logging errors for `home.local` ...'  >&9
 
 }

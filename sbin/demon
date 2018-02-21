@@ -13,10 +13,10 @@ Destroy() {
         exec 7>&-
         exec 8>&-
         exec 9>&-
-        # for fifo in "${LOG_ROOT}"{/*,*/*/*}
-        # do
-        #     [[ -p $fifo ]] && rm "${fifo}"
-        # done
+        for fifo in "${LOG_ROOT}"{/*,*/*/*}
+        do
+            [[ -p $fifo ]] && rm "${fifo}"
+        done
         X 102
     fi
 
@@ -105,16 +105,20 @@ MASQ()
     :
     if [[ ! -r $DNSMASQ_PID ]]
     then
+
+        #             --keep-in-foreground
         "${DNSMASQ}" \
             --log-queries \
+            --stop-dns-rebind \
             --user="${HTTPD_USER}" \
             --listen-address=127.0.0.1 \
+            --address=/local/127.0.0.1 \
             --log-facility="${DNSMASQ_LOG}" \
-            --conf-file="${DNSMASQ_CONFIG}"  \
             --pid-file="${DNSMASQ_PID}" \
-            --resolv-file="${DNS_RESOLV}" \
+            --no-resolv \
             --no-hosts \
             --cache-size=0 \
+            --conf-file="${DNSMASQ_CONFIG}"  \
             >/dev/null 2>&1 &
         printf '%s' $'Starting `dnsmasq` ... '
         wait
@@ -214,8 +218,6 @@ Test()
     wait
     "${APACHECTL}" -f "${HTTPD_CONFIG}" -t
     #-D DUMP_VHOSTS #| column -t
-
-    printf '%s\n' "Now listening ..."  >&3
 
     X 0
 }
