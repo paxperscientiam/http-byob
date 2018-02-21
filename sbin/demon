@@ -6,17 +6,17 @@ shopt -s nullglob
 Destroy() {
     if [[ $STATE == "CLEAN" ]]
     then
-        # exec 3>&-
-        # exec 4>&-
-        # exec 5>&-
-        # exec 6>&-
-        # exec 7>&-
-        # exec 8>&-
-        # exec 9>&-
-        for fifo in "${LOG_ROOT}"{/*,*/*/*}
-        do
-            [[ -p $fifo ]] && rm "${fifo}"
-        done
+        exec 3>&-
+        exec 4>&-
+        exec 5>&-
+        exec 6>&-
+        exec 7>&-
+        exec 8>&-
+        exec 9>&-
+        # for fifo in "${LOG_ROOT}"{/*,*/*/*}
+        # do
+        #     [[ -p $fifo ]] && rm "${fifo}"
+        # done
         X 102
     fi
 
@@ -107,6 +107,7 @@ MASQ()
     then
         "${DNSMASQ}" \
             --log-queries \
+            --user="${HTTPD_USER}" \
             --listen-address=127.0.0.1 \
             --log-facility="${DNSMASQ_LOG}" \
             --conf-file="${DNSMASQ_CONFIG}"  \
