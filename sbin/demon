@@ -57,6 +57,9 @@ Msg() {
     elif [[ $EXIT -eq 105 ]]
     then
         printf '%s\n' "httpd stopped."
+    elif [[ $EXIT -eq 106 ]]
+    then
+        printf '%s\n' "Logging facility does not exist."
     fi
 }
 trap Msg EXIT
@@ -157,12 +160,14 @@ Listen()
     STATE="LISTEN"
     case $1 in
         -D|--dns)
-            cat "${DNSMASQ_LOG}" &
-            wait
-
+            [[ -r "${DNSMASQ_LOG}" ]] &&
+                   cat "${DNSMASQ_LOG}" & wait
+            X 106
             ;;
         -H|--access|--httpd)
-            cat "${HTTPD_CUSTOM_LOG}"
+            [[ -r "${HTTPD_CUSTOM_LOG}" ]] &&
+                cat "${HTTPD_CUSTOM_LOG}" & wait
+            X 106
             ;;
         *)
             Msg "Unknown log."
