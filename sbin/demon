@@ -24,8 +24,6 @@ Destroy() {
         #     #     Stop
 
     #     #X 102
-
-
 }
 trap Destroy SIGINT SIGQUIT
 :
@@ -168,12 +166,12 @@ Listen()
     case $1 in
         -D|--dns)
             [[ -r "${DNSMASQ_LOG}" ]] &&
-                cat "${DNSMASQ_LOG}"
+                cat < "${DNSMASQ_LOG}"
             X 106
             ;;
         -H|--access|--httpd)
             [[ -r "${HTTPD_CUSTOM_LOG}" ]] &&
-                cat "${HTTPD_CUSTOM_LOG}"
+                cat < "${HTTPD_CUSTOM_LOG}"
             X 106
             ;;
         *)
