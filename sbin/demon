@@ -108,11 +108,8 @@ MASQ()
     :
     if [[ ! -r $DNSMASQ_PID ]]
     then
-
-        #             --keep-in-foreground
         "${DNSMASQ}" \
             --log-queries \
-            --log-async=5 \
             --stop-dns-rebind \
             --user="${HTTPD_USER}" \
             --listen-address=127.0.0.1 \
@@ -122,11 +119,10 @@ MASQ()
             --no-resolv \
             --no-hosts \
             --cache-size=0 \
-            --conf-file="${DNSMASQ_CONFIG}"  \
-            >/dev/null 2>&1 &
+            --conf-file="${DNSMASQ_CONFIG}"  &
         printf '%s' $'Starting `dnsmasq` ... '
         wait
-        printf '%s\n' "done."
+        printf '\n\n%s\n' "done."
     else
         read -r pid < "${DNSMASQ_PID}"
         Msg "Dnsmasq seems to be running. ($pid)"
@@ -142,11 +138,10 @@ HTTPD()
     then
         :
         "${HTTPD}" -f "${HTTPD_CONFIG}" \
-                   -k start &
+            -k start &
 
         printf '%s' $'Starting `httpd` ... '
-        wait
-        echo $?
+       # wait
         printf '%s\n' "done."
 
     else
@@ -296,5 +291,6 @@ Run()
 }
 
 # Initiate logging.
-#
+# when commented out, logging is to syslog
+Logger
 Run "${@}"

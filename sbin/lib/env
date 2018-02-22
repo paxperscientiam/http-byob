@@ -29,6 +29,10 @@ export HTTPD_ERROR_LOG='syslog:local6'
 export HTTPD_CUSTOM_LOG="'|/usr/bin/logger -t apache -i -p local5.notice'"
 export DNSMASQ_LOG='local0'
 
+export HTTPD_VHOST_CUSTOM_LOG=/dev/null
+export HTTPD_VHOST_ERROR_LOG=/dev/null
+
+
 # unncessary
 #PHP_CONFIG="${PHP_ROOT}/php-dev.ini"
 
