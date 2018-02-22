@@ -4,13 +4,14 @@ shopt -s nullglob
 #set -x
 :
 Destroy() {
-    exec 3>&-
-    exec 4>&-
-    exec 5>&-
-    exec 6>&-
-    exec 7>&-
-    exec 8>&-
-    exec 9>&-
+    printf "losing connections\\n"
+    # exec 3>&-
+    # exec 4>&-
+    # exec 5>&-
+    # exec 6>&-
+    # exec 7>&-
+    # exec 8>&-
+    # exec 9>&-
 
     if [[ $STATE == "CLEAN" ]]
     then
@@ -104,6 +105,8 @@ source "${_CWD}/lib/logger"
 
 MASQ()
 {
+    local LOG
+    LOG=/tmp/dnsmasq.log
     [[ ! -x $DNSMASQ ]] && Msg "Dnsmasq not found" && X 1
     :
     if [[ ! -r $DNSMASQ_PID ]]
@@ -114,7 +117,7 @@ MASQ()
             --user="${HTTPD_USER}" \
             --listen-address=127.0.0.1 \
             --address=/local/127.0.0.1 \
-            --log-facility="${DNSMASQ_LOG}" \
+            --log-facility="${LOG:-DNSMASQ_LOG}" \
             --pid-file="${DNSMASQ_PID}" \
             --no-resolv \
             --no-hosts \
@@ -132,12 +135,14 @@ MASQ()
 
 HTTPD()
 {
+    local LOG=/tmp/httpd.errors.log
     [[ ! -x $HTTPD ]] && Msg "Apache httpd server not found" && X 1
     :
     if [[ ! -r $HTTPD_PID ]]
     then
         :
         "${HTTPD}" -f "${HTTPD_CONFIG}" \
+                   -E "${LOG:-$HTTPD_ERROR_LOG}" \
             -k start &
 
         printf '%s' $'Starting `httpd` ... '
@@ -158,7 +163,8 @@ Listen()
     case $1 in
         -D|--dns)
             [[ -r "${DNSMASQ_LOG}" ]] &&
-                   cat "${DNSMASQ_LOG}" & wait
+                cat "${DNSMASQ_LOG}"
+            #& wait
             X 106
             ;;
         -H|--access|--httpd)
