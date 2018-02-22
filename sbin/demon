@@ -112,11 +112,9 @@ MASQ()
     :
     if [[ ! -r $DNSMASQ_PID ]]
     then
-        exec 3<>"${DNSMASQ_LOG}"
         (
             "${DNSMASQ}" \
                 --log-queries \
-                --keep-in-foreground \
                 --stop-dns-rebind \
                 --user="${HTTPD_USER}" \
                 --listen-address=127.0.0.1 \
@@ -126,7 +124,7 @@ MASQ()
                 --no-resolv \
                 --no-hosts \
                 --cache-size=0 \
-                --conf-file="${DNSMASQ_CONFIG}" 2>&3
+                --conf-file="${DNSMASQ_CONFIG}" 2>&1 | nc 127.0.0.1 1234
         ) &
         disown %1
         printf '%s\n' $'Starting `dnsmasq`.'
@@ -143,12 +141,10 @@ HTTPD()
     :
     if [[ ! -r $HTTPD_PID ]]
     then
-        exec 3<>"${HTTPD_ERROR_LOG}"
-        exec 4<>"${HTTPD_CUSTOM_LOG}"
         (
             "${APACHECTL}" \
                 -f "${HTTPD_CONFIG}" \
-                -k start 2>&3 >&4
+                -k start 2>&1 | nc 127.0.0.1 9000 &
         ) &
         disown %1
         printf '%s\n' $'Starting `httpd`. '
@@ -162,11 +158,15 @@ HTTPD()
 
 Listen()
 {
+    #nc -k -l 1234
+
+
     STATE="LISTEN"
     case $1 in
         -D|--dns)
-            [[ -r "${DNSMASQ_LOG}" ]] &&
-                cat < "${DNSMASQ_LOG}"
+            nc -k -l 1234
+            # [[ -r "${DNSMASQ_LOG}" ]] &&
+            #     cat < "${DNSMASQ_LOG}"
             X 106
             ;;
         -H|--access|--httpd)
