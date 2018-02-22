@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 shopt -s extglob
 shopt -s nullglob
-#set -x
+set -x
 :
 Destroy() {
     :
@@ -140,19 +140,16 @@ MASQ()
 
 HTTPD()
 {
-    local LOG=/tmp/httpd.errors.log
     [[ ! -x $HTTPD ]] && Msg "Apache httpd server not found" && X 1
     :
     if [[ ! -r $HTTPD_PID ]]
     then
-        :
-        "${HTTPD}" -f "${HTTPD_CONFIG}" \
-                   -E "${LOG:-$HTTPD_ERROR_LOG}" \
-                   -k start &
 
-        printf '%s' $'Starting `httpd` ... '
-        # wait
-        printf '%s\n' "done."
+        "${HTTPD}" -f "${HTTPD_CONFIG}" -k start
+
+        #2> "${HTTPD_ERROR_LOG}" > "${HTTPD_CUSTOM_LOG}"
+        exit
+        printf '%s\n' $'Starting `httpd`. '
 
     else
         read -r pid < "${HTTPD_PID}"
@@ -168,7 +165,7 @@ Listen()
     case $1 in
         -D|--dns)
             [[ -r "${DNSMASQ_LOG}" ]] &&
-                cat < "${DNSMASQ_LOG}"
+                cat "${DNSMASQ_LOG}"
 
             X 106
             ;;

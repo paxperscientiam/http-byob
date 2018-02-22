@@ -24,10 +24,10 @@ export HTTPD_SERVER_NAME="prometheus"
 export HTTPD_CONFIG="${HTTPD_ROOT}/conf/httpd.conf"
 export DNSMASQ_CONFIG="${HTTPD_ROOT}/etc/dnsmasq.conf"
 
-# back in case logging not used. still needed by apache
-export HTTPD_ERROR_LOG='syslog:local6'
-export HTTPD_CUSTOM_LOG="'|/usr/bin/logger -t apache -i -p local5.notice'"
-export DNSMASQ_LOG='local0'
+# # back in case logging not used. still needed by apache
+# export HTTPD_ERROR_LOG='syslog:local6'
+# export HTTPD_CUSTOM_LOG="'|/usr/bin/logger -t apache -i -p local5.notice'"
+# export DNSMASQ_LOG='local0'
 
 export HTTPD_VHOST_CUSTOM_LOG=/dev/null
 export HTTPD_VHOST_ERROR_LOG=/dev/null
