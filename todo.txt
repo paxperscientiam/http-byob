@@ -4,3 +4,4 @@ display dashboard
 use a config file
 status command
 
+move variables for executables to the env file
