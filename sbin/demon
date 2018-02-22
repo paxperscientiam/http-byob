@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 shopt -s extglob
 shopt -s nullglob
-set -x
+#set -x
 :
 Destroy() {
     :
@@ -114,6 +114,7 @@ MASQ()
     :
     if [[ ! -r $DNSMASQ_PID ]]
     then
+        exec 3<>"${DNSMASQ_LOG}"
         (
             "${DNSMASQ}" \
                 --log-queries \
@@ -127,10 +128,10 @@ MASQ()
                 --no-resolv \
                 --no-hosts \
                 --cache-size=0 \
-                --conf-file="${DNSMASQ_CONFIG}" 2> "${DNSMASQ_LOG}"
+                --conf-file="${DNSMASQ_CONFIG}" 2>&3
         ) &
         disown %1
-        printf '%s' $'Starting `dnsmasq`.'
+        printf '%s\n' $'Starting `dnsmasq`.'
     else
         read -r pid < "${DNSMASQ_PID}"
         Msg "Dnsmasq seems to be running. ($pid)"
@@ -144,13 +145,15 @@ HTTPD()
     :
     if [[ ! -r $HTTPD_PID ]]
     then
-
-        "${HTTPD}" -f "${HTTPD_CONFIG}" -k start
-
-        #2> "${HTTPD_ERROR_LOG}" > "${HTTPD_CUSTOM_LOG}"
-        exit
+        exec 3<>"${HTTPD_ERROR_LOG}"
+        exec 4<>"${HTTPD_CUSTOM_LOG}"
+        (
+            "${APACHECTL}" \
+                -f "${HTTPD_CONFIG}" \
+                -k start 2>&3 >&4
+        ) &
+        disown %1
         printf '%s\n' $'Starting `httpd`. '
-
     else
         read -r pid < "${HTTPD_PID}"
         Msg "httpd seems to be running. ($pid)"
@@ -166,7 +169,6 @@ Listen()
         -D|--dns)
             [[ -r "${DNSMASQ_LOG}" ]] &&
                 cat "${DNSMASQ_LOG}"
-
             X 106
             ;;
         -H|--access|--httpd)
