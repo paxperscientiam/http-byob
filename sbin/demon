@@ -181,7 +181,8 @@ Listen()
 Start()
 {
     MASQ &
-    HTTPD &
+    wait
+    HTTPD
 }
 
 #
