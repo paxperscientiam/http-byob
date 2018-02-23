@@ -134,20 +134,20 @@ Listen()
 {
     case $1 in
         -D|--dns)
-            if nc -z localhost 9001 >/dev/null 2>&1
-            then
-                printf '%s\n' "Service not available."
-                X 100
-            fi
+            # if ! nc -z localhost 9001 >/dev/null 2>&1
+            # then
+            #     printf '%s\n' "Service not available."
+            #     X 100
+            # fi
             nc localhost 9001
             X 103
             ;;
         -H|--access|--httpd)
-            if nc -z localhost 9006 >/dev/null 2>&1
-            then
-                printf '%s\n' "Service not available."
-                X 100
-            fi
+            # if ! nc -z localhost 9006 >/dev/null 2>&1
+            # then
+            #     printf '%s\n' "Service not available."
+            #     X 100
+            # fi
             nc localhost 9006
             X 103
             ;;
