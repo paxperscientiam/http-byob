@@ -124,7 +124,7 @@ MASQ()
                 --no-resolv \
                 --no-hosts \
                 --cache-size=0 \
-                --conf-file="${DNSMASQ_CONFIG}" 2>&1 | nc localhost 9001
+                --conf-file="${DNSMASQ_CONFIG}" 2>&1 | nc -k -l 9001
         ) &
         disown %1
         printf '%s\n' $'Starting `dnsmasq`.'
@@ -144,10 +144,10 @@ HTTPD()
         (
             "${APACHECTL}" \
                 -f "${HTTPD_CONFIG}" \
-                -k start 2>&1 | nc localhost 9005 &
+                -k start
         ) &
-        disown %1
         printf '%s\n' $'Starting `httpd`. '
+        wait
     else
         read -r pid < "${HTTPD_PID}"
         Msg "httpd seems to be running. ($pid)"
