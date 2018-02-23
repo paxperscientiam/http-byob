@@ -5,25 +5,6 @@ shopt -s nullglob
 :
 Destroy() {
     :
-    #     [[ $STATE == 'LISTEN' ]] && \
-        #         X 103
-
-    # # while true
-    # # do
-    # #     if read txt
-    # #     ....
-    # # done < "$pipe" 3> "$pipe"
-
-
-    #     for fifo in "${LOG_ROOT}"/{*,*/**}
-    #     do
-    #         [[ -p $fifo ]] && rm "${fifo}"
-    #     done
-
-    #     # [[ $STATE == 'WIPE' ]] && \
-        #     #     Stop
-
-    #     #X 102
 }
 trap Destroy SIGINT SIGQUIT
 :
@@ -64,12 +45,6 @@ Msg() {
     fi
 }
 trap Msg EXIT
-########################
-# Executables
-HTTPD="/opt/local/sbin/httpd"
-DNSMASQ="/opt/local/sbin/dnsmasq"
-APACHECTL="/opt/local/sbin/apachectl"
-eval exe=("${HTTPD} ${APACHECTL} ${DNSMASQ}")
 #################
 :
 # permission check
@@ -119,7 +94,7 @@ MASQ()
                 --listen-address=127.0.0.1 \
                 --address=/local/127.0.0.1 \
                 --log-facility=- \
-                --pid-file="${DNSMASQ_PIDw}" \
+                --pid-file="${DNSMASQ_PID}" \
                 --no-resolv \
                 --no-hosts \
                 --cache-size=0 \
@@ -157,16 +132,24 @@ HTTPD()
 
 Listen()
 {
-    #nc -k -l 1234
-
-
-    STATE="LISTEN"
     case $1 in
         -D|--dns)
+            if nc -z localhost 9001 >/dev/null 2>&1
+            then
+                printf '%s\n' "Service not available."
+                X 100
+            fi
             nc localhost 9001
+            X 103
             ;;
         -H|--access|--httpd)
+            if nc -z localhost 9006 >/dev/null 2>&1
+            then
+                printf '%s\n' "Service not available."
+                X 100
+            fi
             nc localhost 9006
+            X 103
             ;;
         *)
             Msg "Accepted flags are -D and -H."
@@ -204,7 +187,6 @@ Stop()
         if [[ -r "${DNSMASQ_PID}" ]]; then
             rm "${DNSMASQ_PID}" >/dev/null 2>&1
             Msg "dnsmasq proccess stopped."
-            exec 7>&-
         else
             Msg "No dnsmasq process found."
         fi
@@ -291,6 +273,4 @@ Run()
     esac
 }
 
-# Initiate logging.
-# when commented out, logging is to syslog
 Run "${@}"

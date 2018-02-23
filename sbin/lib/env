@@ -3,6 +3,14 @@
 export HTTPD_USER
 HTTPD_USER=$(logname)
 
+########################
+# Executables
+export HTTPD="/opt/local/sbin/httpd"
+export DNSMASQ="/opt/local/sbin/dnsmasq"
+export APACHECTL="/opt/local/sbin/apachectl"
+export eval exe=("${HTTPD} ${APACHECTL} ${DNSMASQ}")
+
+
 
 # pass through variables
 export HTTP_SERVER_ROOT="/opt/local"
