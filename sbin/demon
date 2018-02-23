@@ -211,7 +211,7 @@ Stop()
             Msg "No dnsmasq process found."
         fi
     fi
-
+    killall nc >/dev/null 2>&1
     Destroy
 }
 
