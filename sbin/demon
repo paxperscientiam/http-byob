@@ -100,7 +100,6 @@ check() {
 }
 :
 source "${_CWD}/lib/env"
-source "${_CWD}/lib/logger"
 # before starting, make sure dnsmasq already running
 
 MASQ()
@@ -164,15 +163,10 @@ Listen()
     STATE="LISTEN"
     case $1 in
         -D|--dns)
-            nc -k -l 1234
-            # [[ -r "${DNSMASQ_LOG}" ]] &&
-            #     cat < "${DNSMASQ_LOG}"
-            X 106
+            nc localhost 9001
             ;;
         -H|--access|--httpd)
-            [[ -r "${HTTPD_CUSTOM_LOG}" ]] &&
-                cat < "${HTTPD_CUSTOM_LOG}"
-            X 106
+            nc localhost 9006
             ;;
         *)
             Msg "Accepted flags are -D and -H."
@@ -299,5 +293,4 @@ Run()
 
 # Initiate logging.
 # when commented out, logging is to syslog
-Logger
 Run "${@}"
