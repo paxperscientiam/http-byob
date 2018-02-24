@@ -134,11 +134,24 @@ Listen()
 {
     case $1 in
         -D|--dns)
-            # if ! nc -z localhost 9001 >/dev/null 2>&1
-            # then
-            #     printf '%s\n' "Service not available."
-            #     X 100
-            # fi
+            # check if dnsmasq is using that port
+            if ! lsof -i tcp:53 | grep dnsmasq >/dev/null 2>&1
+            then
+                printf '%s' "Waiting for dnsmasq ... "
+            fi
+
+            # if it is not using it, wait for it
+            (
+                while ! lsof -i :53 | grep dnsmasq >/dev/null 2>&1
+                do
+                    waited='yes'
+                    sleep 0.5
+                done
+                [[ $waited == 'yes' ]] && printf '%s\n\n' "ready."
+            ) &
+            wait
+
+            Msg 'Logging ... '
             nc localhost 9001
             X 103
             ;;
@@ -151,14 +164,14 @@ Listen()
             fi
 
             # check if httpd is using that port
-            if ! lsof -i tcp:80 | grep httpd >/dev/null 2>&1
+            if ! lsof -i :80 | grep httpd >/dev/null 2>&1
             then
                 printf '%s' "Waiting for httpd ... "
             fi
 
             # if it is not using it, wait for it
             (
-                while ! lsof -i tcp:80 | grep httpd >/dev/null 2>&1
+                while ! lsof -i :80 | grep httpd >/dev/null 2>&1
                 do
                     waited='yes'
                     sleep 0.5
@@ -166,7 +179,7 @@ Listen()
                 [[ $waited == 'yes' ]] && printf '%s\n\n' "ready."
             ) &
             wait
-
+            Msg 'Logging ... '
             nc localhost 9006
             X 103
             ;;
