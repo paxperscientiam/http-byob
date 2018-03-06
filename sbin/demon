@@ -252,7 +252,7 @@ Test()
 Status() {
     local args
 
-    [[ -r "${DNSMASQ_PID}" ]] && read -r tmp1 < "${DNSMASQ_PID}"
+    [[ -r "${DNSMASQ_PID}" ]] && tmp1=$(< "${DNSMASQ_PID}")
     mapfile -t tmp2 < <(pgrep httpd)
 
     proc=($tmp1 ${tmp2[*]})
