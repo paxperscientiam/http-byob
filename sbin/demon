@@ -79,6 +79,7 @@ source "${_CWD}/lib/env"
 
 MASQ()
 {
+    local pid
     # local LOG
     # LOG=/tmp/dnsmasq.log
     #"${LOG:-$DNSMASQ_LOG}"
@@ -103,7 +104,7 @@ MASQ()
         disown %1
         printf '%s\n' $'Starting `dnsmasq`.'
     else
-        read -r pid < "${DNSMASQ_PID}"
+        pid=$(< "${DNSMASQ_PID}")
         Msg "Dnsmasq seems to be running. ($pid)"
         X 100
     fi
@@ -111,6 +112,7 @@ MASQ()
 
 HTTPD()
 {
+    local pid
     [[ ! -x $HTTPD ]] && Msg "Apache httpd server not found" && X 1
     :
     if [[ ! -r $HTTPD_PID ]]
@@ -123,7 +125,7 @@ HTTPD()
         printf '%s\n' $'Starting `httpd`. '
         wait
     else
-        read -r pid < "${HTTPD_PID}"
+        pid=$(< "${HTTPD_PID}")
         Msg "httpd seems to be running. ($pid)"
         X 100
     fi
