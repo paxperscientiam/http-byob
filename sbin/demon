@@ -87,7 +87,9 @@ MASQ()
     :
     if [[ ! -r $DNSMASQ_PID ]]
     then
-        (
+        while IFS= read -r line; do
+            printf '%s\n' "$line" | nc localhost 9005
+        done < <(
             "${DNSMASQ}" \
                 --log-queries \
                 --stop-dns-rebind \
@@ -99,7 +101,7 @@ MASQ()
                 --no-resolv \
                 --no-hosts \
                 --cache-size=0 \
-                --conf-file="${DNSMASQ_CONFIG}" 2>&1 | nc -k -l 9001
+                --conf-file="${DNSMASQ_CONFIG}" 2>&1
         ) &
         disown %1
         printf '%s\n' $'Starting `dnsmasq`.'
@@ -154,7 +156,7 @@ Listen()
             wait
 
             Msg 'Logging ... '
-            nc localhost 9001
+            nc -k -l 9005
             X 103
             ;;
         -H|--access|--httpd)
