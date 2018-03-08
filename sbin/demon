@@ -124,6 +124,8 @@ HTTPD()
         done < <(
             "${APACHECTL}" \
                 -f "${HTTPD_CONFIG}" \
+                -e info \
+                -DFOREGROUND \
                 -k start 2>&1
         ) &
         disown %1
