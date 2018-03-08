@@ -88,7 +88,7 @@ MASQ()
     if [[ ! -r $DNSMASQ_PID ]]
     then
         while IFS= read -r line; do
-            printf '%s\n' "$line" | nc localhost 9005
+            printf '%s\n' "$line" | nc localhost "${DNSMASQ_LOG_PORT}"
         done < <(
             "${DNSMASQ}" \
                 --log-queries \
@@ -119,13 +119,15 @@ HTTPD()
     :
     if [[ ! -r $HTTPD_PID ]]
     then
-        (
+        while IFS= read -r line; do
+            printf '%s\n' "$line" | nc localhost "${HTTPD_LOG_PORT}"
+        done < <(
             "${APACHECTL}" \
                 -f "${HTTPD_CONFIG}" \
-                -k start
+                -k start 2>&1
         ) &
+        disown %1
         printf '%s\n' $'Starting `httpd`. '
-        wait
     else
         pid=$(< "${HTTPD_PID}")
         Msg "httpd seems to be running. ($pid)"
@@ -156,7 +158,7 @@ Listen()
             wait
 
             Msg 'Logging ... '
-            nc -k -l 9005
+            nc -k -l "${DNSMASQ_LOG_PORT}"
             X 103
             ;;
         -H|--access|--httpd)
@@ -183,8 +185,9 @@ Listen()
                 [[ $waited == 'yes' ]] && printf '%s\n\n' "ready."
             ) &
             wait
+
             Msg 'Logging ... '
-            nc localhost 9006
+            nc -k -l "${HTTPD_LOG_PORT}"
             X 103
             ;;
         *)
