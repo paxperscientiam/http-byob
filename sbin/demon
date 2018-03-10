@@ -94,6 +94,7 @@ MASQ()
                 --log-queries \
                 --stop-dns-rebind \
                 --user="${HTTPD_USER}" \
+                --port 110 \
                 --listen-address=127.0.0.1 \
                 --address=/local/127.0.0.1 \
                 --log-facility=- \
