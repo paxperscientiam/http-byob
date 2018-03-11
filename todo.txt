@@ -7,3 +7,4 @@ status command
 move variables for executables to the env file
 ttest
 ttest
+test virtualhost resolv
