@@ -82,7 +82,6 @@ MASQ()
     local pid
 
     [[ ! -d "/etc/resolver/" ]] && mkdir "/etc/resolver/"
-    [[ $? -ne 0 ]] && exit
 
 
     if [[ ! -f "/etc/resolver/local" ]]
