@@ -94,7 +94,7 @@ MASQ()
                 --log-queries \
                 --stop-dns-rebind \
                 --user="${HTTPD_USER}" \
-                --port 110 \
+                --port "${DNS_PORT}" \
                 --listen-address=127.0.0.1 \
                 --address=/local/127.0.0.1 \
                 --log-facility=- \
@@ -144,14 +144,14 @@ Listen()
     case $1 in
         -D|--dns)
             # check if dnsmasq is using that port
-            if ! lsof -i tcp:110 | grep dnsmasq >/dev/null 2>&1
+            if ! lsof -i tcp:"${DNS_PORT}" | grep dnsmasq >/dev/null 2>&1
             then
                 printf '%s' "Waiting for dnsmasq ... "
             fi
 
             # if it is not using it, wait for it
             (
-                while ! lsof -i :110 | grep dnsmasq >/dev/null 2>&1
+                while ! lsof -i :"${DNS_PORT}" | grep dnsmasq >/dev/null 2>&1
                 do
                     waited='yes'
                     sleep 0.5
