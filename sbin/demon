@@ -4,7 +4,7 @@ shopt -s nullglob
 #set -x
 :
 Destroy() {
-    :
+    tput clear
 }
 trap Destroy SIGINT SIGQUIT
 :
@@ -144,14 +144,14 @@ Listen()
     case $1 in
         -D|--dns)
             # check if dnsmasq is using that port
-            if ! lsof -i tcp:53 | grep dnsmasq >/dev/null 2>&1
+            if ! lsof -i tcp:110 | grep dnsmasq >/dev/null 2>&1
             then
                 printf '%s' "Waiting for dnsmasq ... "
             fi
 
             # if it is not using it, wait for it
             (
-                while ! lsof -i :53 | grep dnsmasq >/dev/null 2>&1
+                while ! lsof -i :110 | grep dnsmasq >/dev/null 2>&1
                 do
                     waited='yes'
                     sleep 0.5
@@ -235,7 +235,6 @@ Stop()
         fi
     fi
     killall nc >/dev/null 2>&1
-    Destroy
 }
 
 Restart()
@@ -257,15 +256,31 @@ Test()
     X 0
 }
 
+
 Status() {
-    local args
+    local pid
+    tput sgr0 # turn off text attributes
+    tput clear # clear stuff away
+    ps -o "pid,etime,user,comm" | head -n 1 | column -t
 
-    [[ -r "${DNSMASQ_PID}" ]] && tmp1=$(< "${DNSMASQ_PID}")
-    mapfile -t tmp2 < <(pgrep httpd)
+    while IFS= read -r line; do
+            tput sc
 
-    proc=($tmp1 ${tmp2[*]})
-    printf -v args '%s' "${proc[@]/#/ \-pid }"
-    \top -u -s 2 -stats command,pid,pgrp,ppid,uid $args
+        [[ -r "${DNSMASQ_PID}" ]] && tmp1=$(< "${DNSMASQ_PID}")
+        mapfile -t tmp2 < <(pgrep httpd)
+        proc=("${tmp1}" "${tmp2[*]}")
+
+        for pid in ${proc[@]}; do
+            command ps -p "${pid}" -o "pid=,etime=,user=,comm=" | column -t 2>&1
+            tput el
+        done
+        sleep 2
+        tput ed
+        tput rc
+    done < <(
+        yes
+    ) &
+    wait
 }
 
 Run()
