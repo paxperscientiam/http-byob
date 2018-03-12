@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 shopt -s extglob
 shopt -s nullglob
+unset CDPATH
 #set -x
 :
+
 Destroy() {
     tput clear
 }
@@ -54,16 +56,20 @@ gate() {
 :
 :
 get_cwd() {
+    local SOURCE
+    local _CWD
     SOURCE="${BASH_SOURCE[-1]}"
-    while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
+    while [ -h "$SOURCE" ]; do
         DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
         SOURCE="$(readlink "$SOURCE")"
-        [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
+        [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
     done
     _CWD="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
     :
+    echo "${_CWD}"
 }
-get_cwd
+_CWD="$(get_cwd)"
+
 
 check() {
     [[ "${#_CWD}" -eq 0 ]] && printf "The CWD must be defined.\\n"
