@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 shopt -s extglob
 shopt -s nullglob
+unset CDPATH
 #set -x
 :
 Destroy() {
@@ -54,35 +55,7 @@ gate() {
 }
 :
 :
-get_cwd() {
-    unset CDPATH
 :
-    local SOURCE
-    local _CWD
-    SOURCE="${BASH_SOURCE[-1]}"
-    while [ -h "$SOURCE" ]; do
-        DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
-        SOURCE="$(readlink "$SOURCE")"
-        [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
-    done
-    _CWD="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
-    :
-    echo "${_CWD}"
-}
-_CWD="$(get_cwd)"
-
-
-check() {
-    [[ "${#_CWD}" -eq 0 ]] && printf "The CWD must be defined.\\n"
-    local file; file="${1}"
-    [[ ${#1} -eq 0 ]] && return 2
-    # pathchk could come in handy
-    [[ -r $_CWD/$file ]] && return 0
-    return 1
-}
-:
-source "${_CWD}/lib/env"
-# before starting, make sure dnsmasq already running
 
 MASQ()
 {
@@ -339,8 +312,7 @@ http-byob()
             Listen "${@}"
             ;;
         clean  )
-            Destroy
-            ;;
+            Destroy            ;;
         status)
             Status
             ;;
@@ -359,6 +331,9 @@ if [[ ${BASH_SOURCE[0]} != "${0}" ]]; then
     :
 elif [[ "${BASH_SOURCE[0]}" == 'sbin/http-byob' ]]
 then
+    cd ./sbin || X 1
+    _PWD="$(pwd)"
+    source "./lib/env"
     http-byob "${@}"
 else
     printf '%s\n' "\`http-byob\` must be invoked from the container root -- \"sbin/http-byob\". Also, avoid using aliases!"

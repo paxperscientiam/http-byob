@@ -1,5 +1,4 @@
 # -*- mode:shell-script -*-
-
 export HTTPD_USER
 HTTPD_USER=$(logname)
 
@@ -14,7 +13,7 @@ export eval exe=("${HTTPD} ${APACHECTL} ${DNSMASQ}")
 
 # pass through variables
 export HTTP_SERVER_ROOT="/opt/local"
-export HTTPD_ROOT; HTTPD_ROOT=$(dirname "${_CWD}")
+export HTTPD_ROOT; HTTPD_ROOT=$(dirname "${_PWD}")
 
 
 # Apache says it NOT include trailing slash
