@@ -352,8 +352,6 @@ http-byob()
 }
 
 if [[ ${BASH_SOURCE[0]} != "${0}" ]]; then
-#  export
-    #export -f http-byob
     printf '%s\n' "\`http-byob\` is not meant to be sourced."
     :
 else
