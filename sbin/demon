@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 shopt -s extglob
 shopt -s nullglob
-unset CDPATH
 #set -x
 :
 
@@ -56,6 +55,8 @@ gate() {
 :
 :
 get_cwd() {
+    unset CDPATH
+:
     local SOURCE
     local _CWD
     SOURCE="${BASH_SOURCE[-1]}"
@@ -269,7 +270,6 @@ Test()
     "${DNSMASQ}" -C "${DNSMASQ_CONFIG}" --test &
     wait
     "${APACHECTL}" -f "${HTTPD_CONFIG}" -t
-    #-D DUMP_VHOSTS #| column -t
 
     X 0
 }
@@ -303,7 +303,7 @@ Status() {
 
 
 
-Run()
+http-byob()
 {
     case $1 in
         start  )
@@ -351,4 +351,11 @@ Run()
     esac
 }
 
-Run "${@}"
+if [[ ${BASH_SOURCE[0]} != "${0}" ]]; then
+#  export
+    #export -f http-byob
+    printf '%s\n' "\`http-byob\` is not meant to be sourced."
+    :
+else
+    http-byob "${@}"
+fi
