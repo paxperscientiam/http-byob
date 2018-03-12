@@ -3,9 +3,6 @@ shopt -s extglob
 shopt -s nullglob
 #set -x
 :
-
-[[ "${BASH_SOURCE[0]}" != 'sbin/http-byob' ]] && printf '%s\n' "\`http-byob\` must be invoked from the container root -- \"sbin/http-byob\". Also, avoid using aliases!" && exit 1
-
 Destroy() {
     tput clear
 }
@@ -15,6 +12,7 @@ X() {
     EXIT="${1:-0}"
     exit "${EXIT}"
 }
+
 Msg() {
     [[ "${#1}" -gt 0 ]] && printf '%s\n\n' "${1}" && return
 
@@ -353,10 +351,16 @@ http-byob()
     esac
 }
 
+
 if [[ ${BASH_SOURCE[0]} != "${0}" ]]; then
     printf '%s\n' "\`http-byob\` is not meant to be sourced."
     unset -f http-byob
+    return 1
     :
-else
+elif [[ "${BASH_SOURCE[0]}" == 'sbin/http-byob' ]]
+then
     http-byob "${@}"
+else
+    printf '%s\n' "\`http-byob\` must be invoked from the container root -- \"sbin/http-byob\". Also, avoid using aliases!"
+    X 1
 fi
