@@ -4,7 +4,7 @@ shopt -s nullglob
 #set -x
 :
 
-[[ "${BASH_SOURCE[0]}" != 'sbin/http-byob' ]] && printf '%s\n' "\`http-byob\` must be invoked from the container root, so avoid using aliases!" && exit
+[[ "${BASH_SOURCE[0]}" != 'sbin/http-byob' ]] && printf '%s\n' "\`http-byob\` must be invoked from the container root -- \"sbin/http-byob\". Also, avoid using aliases!" && exit 1
 
 Destroy() {
     tput clear
@@ -355,6 +355,7 @@ http-byob()
 
 if [[ ${BASH_SOURCE[0]} != "${0}" ]]; then
     printf '%s\n' "\`http-byob\` is not meant to be sourced."
+    unset -f http-byob
     :
 else
     http-byob "${@}"
