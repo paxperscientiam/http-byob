@@ -19,7 +19,7 @@ Msg() {
 
     if [[ $EXIT -eq 0 ]]
     then
-        printf '%s\n' "That went suprisingly well."
+        printf '\n\n%s\n' "That went suprisingly well."
     elif [[ $EXIT -eq 1  ]]
     then
         printf '%s\n' "Error"
@@ -236,15 +236,25 @@ Restart()
 
 Test()
 {
-    printf '%s\n' "${exe[@]}"
-
-    printf '%s\n' "${HTTPD_ROOT}"
-
-    "${DNSMASQ}" -C "${DNSMASQ_CONFIG}" --test &
-    wait
-    "${APACHECTL}" -f "${HTTPD_CONFIG}" -t
-
-    X 0
+    local name
+    source "./lib/env"
+    for exe in ${exe[@]}; do
+        name="$(basename "${exe}")"
+        if [[ -x "${exe}" ]]; then
+            printf '%-20s found!' "${name}"
+            if [[ "${name}" == 'dnsmasq' ]]; then
+                printf '\t'
+                "${DNSMASQ}" -C "${DNSMASQ_CONFIG}" --test &
+                wait
+            elif [[  "${name}" == 'apachectl' ]]; then
+                printf '\t'
+                "${APACHECTL}" -f "${HTTPD_CONFIG}" -t &
+                wait
+            fi
+        else
+            printf '%-20s not found!\n' "${name}"
+        fi
+    done
 }
 
 

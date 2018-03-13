@@ -7,7 +7,7 @@ HTTPD_USER=$(logname)
 export HTTPD="/opt/local/sbin/httpd"
 export DNSMASQ="/opt/local/sbin/dnsmasq"
 export APACHECTL="/opt/local/sbin/apachectl"
-export eval exe=("${HTTPD} ${APACHECTL} ${DNSMASQ}")
+export eval exe=("${APACHECTL} ${DNSMASQ}")
 
 
 
