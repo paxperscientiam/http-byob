@@ -232,6 +232,10 @@ Stop()
 Restart()
 {
 	  "${APACHECTL}" -f "${HTTPD_CONFIG}" -k restart > /dev/null 2>&1
+    Stop -D &
+    wait
+    Start -D
+
 }
 
 Test()
