@@ -326,7 +326,8 @@ http-byob()
             Listen "${@}"
             ;;
         clean  )
-            Destroy            ;;
+            Destroy
+            ;;
         status)
             Status
             ;;
