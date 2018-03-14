@@ -354,7 +354,7 @@ if [[ ${BASH_SOURCE[0]} != "${0}" ]]; then
                                           alias test=\"sbin/http-byob test \";\
                                           alias listen=\"sbin/http-byob listen \";\
                                           set +o history;\
-                                          ");printf '%s'  "${httpbyob_shell}") -i
+                                          "); printf '%s'  "${httpbyob_shell}") -i
         return
     fi
     printf '%s\n' "\`http-byob\` is not meant to be sourced."
