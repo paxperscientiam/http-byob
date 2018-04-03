@@ -232,10 +232,17 @@ Stop()
 
 Restart()
 {
-	  "${APACHECTL}" -f "${HTTPD_CONFIG}" -k restart > /dev/null 2>&1
-    Stop -D &
-    wait
-    Start -D
+    if [[ $1 == '-H' || "${#1}" -eq 0 ]]
+    then
+	      "${APACHECTL}" -f "${HTTPD_CONFIG}" -k restart > /dev/null 2>&1 & wait
+    fi
+
+    if [[ $1 == '-D' || "${#1}" -eq 0 ]]
+    then
+        Stop -D &
+        wait
+        Start -D
+    fi
 
 }
 
@@ -319,7 +326,7 @@ http-byob()
             ;;
         restart)
             gate
-            Restart
+            Restart "${@}"
             ;;
         test   )
             gate
