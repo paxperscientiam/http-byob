@@ -65,12 +65,12 @@ MASQ()
     [[ ! -d "/etc/resolver/" ]] && mkdir "/etc/resolver/"
 
 
-    if [[ ! -f "/etc/resolver/local" ]]
+    if [[ ! -f "/etc/resolver/lan" ]]
     then
-        touch /etc/resolver/local
-	printf '%s\n' "nameserver 127.0.0.1" >| /etc/resolver/local
+        touch /etc/resolver/lan
+	      printf '%s\n' "nameserver 127.0.0.1" >| /etc/resolver/lan
     else
-        printf '%s\n' "nameserver 127.0.0.1" >| /etc/resolver/local
+        printf '%s\n' "nameserver 127.0.0.1" >| /etc/resolver/lan
     fi
 
 
@@ -88,14 +88,19 @@ MASQ()
                 --user="${HTTPD_USER}" \
                 --port "${DNS_PORT}" \
                 --local-service \
+                --domain=/home.lan/ \
 		            --server=127.0.0.1 \
+                --server=8.8.8.8 \
                 --listen-address=127.0.0.1 \
-                --address=/local/127.0.0.1 \
+                --address=/lan/127.0.0.1 \
                 --log-facility=- \
                 --pid-file="${DNSMASQ_PID}" \
-                --no-hosts \
-                --no-resolv \
                 --cache-size=0 \
+                --no-resolv \
+                --domain-needed \
+                --bogus-priv \
+                --no-hosts \
+                --strict-order \
                 --conf-file="${DNSMASQ_CONFIG}" 2>&1
         ) &
         disown %1
@@ -244,7 +249,6 @@ Restart()
     if [[ $1 == '-D' || "${#1}" -eq 0 ]]
     then
         Stop -D &
-        exit
         wait
         Start -D
     fi
