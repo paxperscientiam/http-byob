@@ -197,9 +197,13 @@ Listen()
 # Start
 Start()
 {
-    MASQ &
-    wait
-    HTTPD
+    if [[ $1 == '-D' || "${#1}" -eq 0 ]]
+    then
+        MASQ
+    elif [[ $1 == '-H' || "${#1}" -eq 0 ]]
+    then
+        HTTPD
+    fi
 }
 
 #
@@ -222,7 +226,7 @@ Stop()
         pkill -9 -F "${DNSMASQ_PID}" dnsmasq >/dev/null 2>&1 & wait
         if [[ -r "${DNSMASQ_PID}" ]]; then
             rm "${DNSMASQ_PID}" >/dev/null 2>&1
-            Msg "dnsmasq proccess stopped."
+            Msg "dnsmasq process stopped."
         else
             Msg "No dnsmasq process found."
         fi
@@ -240,6 +244,7 @@ Restart()
     if [[ $1 == '-D' || "${#1}" -eq 0 ]]
     then
         Stop -D &
+        exit
         wait
         Start -D
     fi
@@ -309,11 +314,11 @@ http-byob()
             shift
             case $1 in
                 -D|--dnsmasq)
-                    MASQ
+                    Start -D
                     X 0
                     ;;
                 -H|--httpd)
-                    HTTPD
+                    Start -H
                     X 0
                     ;;
             esac
@@ -326,6 +331,7 @@ http-byob()
             ;;
         restart)
             gate
+            shift
             Restart "${@}"
             ;;
         test   )
