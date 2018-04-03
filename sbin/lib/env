@@ -25,7 +25,7 @@ export HTTPD_PID="${HTTPD_ROOT}/var/run/httpd.pid"
 export DNS_RESOLV="${HTTPD_ROOT}/etc/resolv.conf"
 export DNS_HOSTS="${HTTPD_ROOT}/etc/hosts"
 
-export HTTPD_SERVER_NAME="prometheus"
+export HTTPD_SERVER_NAME="localhost"
 
 # Configs
 export HTTPD_CONFIG="${HTTPD_ROOT}/conf/httpd.conf"

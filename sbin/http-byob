@@ -68,6 +68,7 @@ MASQ()
     if [[ ! -f "/etc/resolver/local" ]]
     then
         touch /etc/resolver/local
+	printf '%s\n' "nameserver 127.0.0.1" >| /etc/resolver/local
     else
         printf '%s\n' "nameserver 127.0.0.1" >| /etc/resolver/local
     fi
@@ -78,7 +79,7 @@ MASQ()
     if [[ ! -r $DNSMASQ_PID ]]
     then
         while IFS= read -r line; do
-            printf '%s\n' "$line" | nc localhost "${DNSMASQ_LOG_PORT}"
+            printf '%s\n' "$line" | nc "${HOSTNAME}" "${DNSMASQ_LOG_PORT}"
         done < <(
             "${DNSMASQ}" \
                 --log-queries \
@@ -87,7 +88,7 @@ MASQ()
                 --user="${HTTPD_USER}" \
                 --port "${DNS_PORT}" \
                 --local-service \
-                --domain="${HOSTNAME}",127.0.0.1/24,local \
+		            --server=127.0.0.1 \
                 --listen-address=127.0.0.1 \
                 --address=/local/127.0.0.1 \
                 --log-facility=- \
@@ -114,7 +115,7 @@ HTTPD()
     if [[ ! -r $HTTPD_PID ]]
     then
         while IFS= read -r line; do
-            printf '%s\n' "$line" | nc localhost "${HTTPD_LOG_PORT}"
+            printf '%s\n' "$line" | nc "${HOSTNAME}" "${HTTPD_LOG_PORT}"
         done < <(
             "${APACHECTL}" \
                 -f "${HTTPD_CONFIG}" \
@@ -159,7 +160,7 @@ Listen()
             ;;
         -H|--access|--httpd)
             # check if port is accessible
-            if ! nc -z localhost 80 >/dev/null 2>&1
+            if ! nc -z "${HOSTNAME}" 80 >/dev/null 2>&1
             then
                 printf '%s\n' "Cannot connect to port 80."
                 X 1
@@ -253,6 +254,9 @@ Test()
             elif [[  "${name}" == 'apachectl' ]]; then
                 printf '\t'
                 "${APACHECTL}" -f "${HTTPD_CONFIG}" -t &
+                wait
+                printf '\t'
+                "${APACHECTL}" -f "${HTTPD_CONFIG}" -S &
                 wait
             fi
         else
