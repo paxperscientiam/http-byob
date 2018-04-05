@@ -90,7 +90,6 @@ MASQ()
                 --local-service \
                 --domain=/home.lan/ \
 		            --server=127.0.0.1 \
-                --server=8.8.8.8 \
                 --listen-address=127.0.0.1 \
                 --address=/lan/127.0.0.1 \
                 --log-facility=- \
@@ -205,7 +204,9 @@ Start()
     if [[ $1 == '-D' || "${#1}" -eq 0 ]]
     then
         MASQ
-    elif [[ $1 == '-H' || "${#1}" -eq 0 ]]
+    fi
+    :
+    if [[ $1 == '-H' || "${#1}" -eq 0 ]]
     then
         HTTPD
     fi
