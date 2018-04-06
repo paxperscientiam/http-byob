@@ -258,7 +258,11 @@ Restart()
 Test()
 {
     local name
-    source "./lib/env"
+    if ! source './sbin/lib/env' >/dev/null 2>&1
+    then
+        printf "Unable to source environment variables!\\n"
+        X 1
+    fi
     for exe in ${exe[@]}; do
         name="$(basename "${exe}")"
         if [[ -x "${exe}" ]]; then
@@ -380,9 +384,11 @@ if [[ ${BASH_SOURCE[0]} != "${0}" ]]; then
     printf '%s\n' "\`http-byob\` is not meant to be sourced!"
 elif [[ "${BASH_SOURCE[0]}" == 'sbin/http-byob' ]]
 then
-    cd ./sbin || X 1
-    _PWD="$(pwd/)"
-    source "./lib/env"
+    if ! source './sbin/lib/env' >/dev/null 2>&1
+    then
+        printf "Unable to source environment variables!\\n"
+        X 1
+    fi
     http-byob "${@}"
 else
     printf '%s\n' "\`http-byob\` must be invoked from the container root -- \"sbin/http-byob\". Also, avoid using aliases!"

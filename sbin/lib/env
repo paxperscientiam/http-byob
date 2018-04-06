@@ -13,8 +13,7 @@ export eval exe=("${APACHECTL} ${DNSMASQ}")
 
 # pass through variables
 export HTTP_SERVER_ROOT="/opt/local"
-export HTTPD_ROOT; HTTPD_ROOT=$(dirname "${_PWD}")
-
+export HTTPD_ROOT; HTTPD_ROOT=$(pwd)
 
 # Apache says it NOT include trailing slash
 export HTTPD_DOCUMENT_ROOT="${HTTPD_ROOT}/www"
