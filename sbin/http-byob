@@ -61,16 +61,18 @@ gate() {
 MASQ()
 {
     local pid
+    local resolvFile; resolvFile="/etc/resolver/lan"
+
 
     [[ ! -d "/etc/resolver/" ]] && mkdir "/etc/resolver/"
 
 
-    if [[ ! -f "/etc/resolver/lan" ]]
+    if [[ ! -f "${resolvFile}" ]]
     then
-        touch /etc/resolver/lan
-	      printf '%s\n' "nameserver 127.0.0.1" >| /etc/resolver/lan
+        touch "${resolvFile}"
+	      printf '%s\n' "nameserver 127.0.0.1" >| "${resolvFile}"
     else
-        printf '%s\n' "nameserver 127.0.0.1" >| /etc/resolver/lan
+        printf '%s\n' "nameserver 127.0.0.1" >| "${resolvFile}"
     fi
 
 
@@ -86,9 +88,8 @@ MASQ()
                 --stop-dns-rebind \
                 --bind-interfaces \
                 --user="${HTTPD_USER}" \
-                --port "${DNS_PORT}" \
+                --port="${DNS_PORT}" \
                 --local-service \
-                --domain=/home.lan/ \
 		            --server=127.0.0.1 \
                 --listen-address=127.0.0.1 \
                 --address=/lan/127.0.0.1 \
@@ -96,8 +97,6 @@ MASQ()
                 --pid-file="${DNSMASQ_PID}" \
                 --cache-size=0 \
                 --no-resolv \
-                --domain-needed \
-                --bogus-priv \
                 --no-hosts \
                 --strict-order \
                 --conf-file="${DNSMASQ_CONFIG}" 2>&1
@@ -361,7 +360,6 @@ http-byob()
     esac
 }
 
-
 if [[ ${BASH_SOURCE[0]} != "${0}" ]]; then
     unset -f http-byob
     if [[ "${*}" =~ '--activate' ]]; then
@@ -379,13 +377,11 @@ if [[ ${BASH_SOURCE[0]} != "${0}" ]]; then
                                           "); printf '%s'  "${httpbyob_shell}") -i
         return
     fi
-    printf '%s\n' "\`http-byob\` is not meant to be sourced."
-    return 1
-    :
+    printf '%s\n' "\`http-byob\` is not meant to be sourced!"
 elif [[ "${BASH_SOURCE[0]}" == 'sbin/http-byob' ]]
 then
     cd ./sbin || X 1
-    _PWD="$(pwd)"
+    _PWD="$(pwd/)"
     source "./lib/env"
     http-byob "${@}"
 else
