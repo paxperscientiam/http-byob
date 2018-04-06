@@ -15,7 +15,7 @@ Clean() {
         rm "${DNSMASQ_PID}" >/dev/null 2>&1
     fi
     # ipconfig set en1 DHCP &
-#     wait
+    #     wait
     printf '%s\n' "Done cleaning."
 }
 
@@ -67,10 +67,31 @@ trap Msg EXIT
 :
 # permission check
 gate() {
-    if [[ $UID -ne 0 ]]; then
-        sudo "$0" "$@"
-        [[ $? -eq 1 ]] && X 101
+    [[ $UID -eq 0 ]] || exec sudo "$0" "$@"
+}
+:
+check() {
+    if [[ $1 == '-D' && -r "${DNSMASQ_PID}" ]]
+    then
+        echo "PID file found."
+        if ! ps -p "${DNSMASQ_PID}" >/dev/null 2>&1
+        then
+            echo "Process by PID not running."
+            return 1
+        fi
+        return 0
+    elif [[ $1 == '-H' && -r "${HTTPD_PID}" ]]
+    then
+        echo "PID file found."
+
+        if ps -p "${HTTPD_PID}" >/dev/null 2>&1
+        then
+            echo "Process by PID not running."v
+            return 0
+        fi
+        return 0
     fi
+    return 1
 }
 :
 MASQ()
@@ -92,7 +113,7 @@ MASQ()
 
     [[ ! -x $DNSMASQ ]] && Msg "Dnsmasq not found" && X 1
     :
-    if [[ ! -r $DNSMASQ_PID ]]
+    if ! check -D
     then
         while IFS= read -r line; do
             printf '%s\n' "$line" | nc "${HOSTNAME}" "${DNSMASQ_LOG_PORT}"
@@ -130,7 +151,9 @@ HTTPD()
     local pid
     [[ ! -x $HTTPD ]] && Msg "Apache httpd server not found" && X 1
     :
-    if [[ ! -r $HTTPD_PID ]]
+    check -H
+    echo $?;exit
+    if [[ $? -ne 0 ]]
     then
         while IFS= read -r line; do
             printf '%s\n' "$line" | nc "${HOSTNAME}" "${HTTPD_LOG_PORT}"
@@ -232,12 +255,13 @@ Stop()
 {
     if [[ $1 == '-H' || "${#1}" -eq 0 ]]
     then
-        pkill -TERM -F "${HTTPD_PID}" &
+        pkill -TERM -F "${HTTPD_PID}" >/dev/null 2>&1 &
         printf '%s' "Stopping Apache httpd ... "
         wait
         printf '%s (%s)\n' "done." "$?"
 
-        if [[ -r $HTTPD_PID  ]]; then
+        if check -H
+        then
             rm "${HTTPD_PID}" >/dev/null 2>&1
             Msg "httpd proccesses stopped."
         else
@@ -248,7 +272,8 @@ Stop()
     if [[ $1 == '-D' || "${#1}" -eq 0 ]]
     then
         pkill -9 -F "${DNSMASQ_PID}" dnsmasq >/dev/null 2>&1 & wait
-        if [[ -r "${DNSMASQ_PID}" ]]; then
+        if check -D
+        then
             rm "${DNSMASQ_PID}" >/dev/null 2>&1
             Msg "dnsmasq process stopped."
         else
@@ -262,7 +287,10 @@ Restart()
 {
     if [[ $1 == '-H' || "${#1}" -eq 0 ]]
     then
-        [[ ! -r $HTTPD_PID  ]] &&  Msg "No httpd process found." && return
+        if ! check -H
+        then
+            Msg "No httpd process found." && return 1
+        fi
         pkill -HUP -F "${HTTPD_PID}" &
         printf '%s' "Restarting Apache httpd ... "
         wait
@@ -324,7 +352,7 @@ Status() {
     ps -o "ppid,pid,etime,user,comm" | head -n 1 | column -t
 
     while IFS= read -r line; do
-            tput sc
+        tput sc
 
         [[ -r "${DNSMASQ_PID}" ]] && tmp1=$(< "${DNSMASQ_PID}")
         mapfile -t tmp2 < <(pgrep httpd)
@@ -364,7 +392,7 @@ http-byob()
             Start
             ;;
         stop   )
-            gate
+            gate stop
             shift
             Stop "${@}"
             ;;
@@ -374,7 +402,7 @@ http-byob()
             Restart "${@}"
             ;;
         test   )
-            gate
+            gate test
             Test
             ;;
         listen|watch)
@@ -387,7 +415,11 @@ http-byob()
         status)
             Status
             ;;
-
+        alien)
+            check -H
+            echo $?
+            X 0
+            ;;
         *)
             echo "Unknown option: try 'Start', 'Stop', 'Restart' or 'Test'"
             X 1
@@ -399,7 +431,7 @@ if [[ ${BASH_SOURCE[0]} != "${0}" ]]; then
     unset -f http-byob
     if [[ "${*}" =~ '--activate' ]]; then
         bash --rcfile <(read -r httpbyob_shell < \
-                                  <(printf '%s' "export PS1=\"( BYOB ) ${PS1}\" ;\
+                             <(printf '%s' "export PS1=\"( BYOB ) ${PS1}\" ;\
                                           alias sudo='sudo ';\
                                           unset PROMPT_COMMAND;\
                                           alias status=\"sbin/http-byob status\";\
