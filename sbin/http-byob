@@ -4,6 +4,14 @@ shopt -s nullglob
 unset CDPATH
 #set -x
 :
+Clean() {
+    rm "${HTTPD_PID}" >/dev/null 2>&1
+    rm "${DNSMASQ_PID}" >/dev/null 2>&1
+    ipconfig set en1 DHCP &
+    wait
+    printf '%s\n' "Done cleaning."
+}
+
 
 Destroy() {
     tput clear
@@ -85,6 +93,8 @@ MASQ()
         done < <(
             "${DNSMASQ}" \
                 --log-queries \
+                --log-facility=- \
+                --log-async=15 \
                 --stop-dns-rebind \
                 --bind-interfaces \
                 --user="${HTTPD_USER}" \
@@ -93,7 +103,6 @@ MASQ()
 		            --server=127.0.0.1 \
                 --listen-address=127.0.0.1 \
                 --address=/lan/127.0.0.1 \
-                --log-facility=- \
                 --pid-file="${DNSMASQ_PID}" \
                 --cache-size=0 \
                 --no-resolv \
