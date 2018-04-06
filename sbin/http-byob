@@ -60,7 +60,10 @@ trap Msg EXIT
 :
 # permission check
 gate() {
-    [[ $UID != 0 ]] && X 101
+    if [[ $UID -ne 0 ]]; then
+        sudo "$0" "$@"
+        [[ $? -eq 1 ]] && X 101
+    fi
 }
 :
 :
