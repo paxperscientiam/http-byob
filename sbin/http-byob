@@ -66,14 +66,10 @@ gate() {
     fi
 }
 :
-:
-:
-
 MASQ()
 {
     local pid
     local resolvFile; resolvFile="/etc/resolver/lan"
-
 
     [[ ! -d "/etc/resolver/" ]] && mkdir "/etc/resolver/"
 
@@ -103,7 +99,7 @@ MASQ()
                 --user="${HTTPD_USER}" \
                 --port="${DNS_PORT}" \
                 --local-service \
-		            --server=127.0.0.1 \
+		            --server=/lan/127.0.0.1 \
                 --listen-address=127.0.0.1 \
                 --address=/lan/127.0.0.1 \
                 --pid-file="${DNSMASQ_PID}" \
@@ -229,7 +225,11 @@ Stop()
 {
     if [[ $1 == '-H' || "${#1}" -eq 0 ]]
     then
-        "${APACHECTL}" -f "${HTTPD_CONFIG}" -k stop > /dev/null 2>&1 & wait
+        pkill -TERM -F "${HTTPD_PID}" &
+        printf '%s' "Stopping Apache httpd ... "
+        wait
+        printf '%s (%s)\n' "done." "$?"
+
         if [[ -r $HTTPD_PID  ]]; then
             rm "${HTTPD_PID}" >/dev/null 2>&1
             Msg "httpd proccesses stopped."
@@ -255,7 +255,10 @@ Restart()
 {
     if [[ $1 == '-H' || "${#1}" -eq 0 ]]
     then
-	      "${APACHECTL}" -f "${HTTPD_CONFIG}" -k restart > /dev/null 2>&1 & wait
+        pkill -HUP -F "${HTTPD_PID}" &
+        printf '%s' "Restarting Apache httpd ... "
+        wait
+        printf '%s (%s)\n' "done." "$?"
     fi
 
     if [[ $1 == '-D' || "${#1}" -eq 0 ]]
@@ -302,7 +305,7 @@ Status() {
     local pid
     tput sgr0 # turn off text attributes
     tput clear # clear stuff away
-    ps -o "pid,etime,user,comm" | head -n 1 | column -t
+    ps -o "ppid,pid,etime,user,comm" | head -n 1 | column -t
 
     while IFS= read -r line; do
             tput sc
@@ -312,7 +315,7 @@ Status() {
         proc=("${tmp1}" "${tmp2[*]}")
 
         for pid in ${proc[@]}; do
-            command ps -p "${pid}" -o "pid=,etime=,user=,comm=" | column -t 2>&1
+            command ps -p "${pid}" -o "ppid=,pid=,etime=,user=,comm=" | column -t 2>&1
             tput el
         done
         sleep 2
