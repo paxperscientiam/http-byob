@@ -71,27 +71,42 @@ gate() {
 }
 :
 check() {
-    if [[ $1 == '-D' && -r "${DNSMASQ_PID}" ]]
-    then
-        echo "PID file found."
-        if ! ps -p "${DNSMASQ_PID}" >/dev/null 2>&1
-        then
-            echo "Process by PID not running."
-            return 1
-        fi
-        return 0
-    elif [[ $1 == '-H' && -r "${HTTPD_PID}" ]]
-    then
-        echo "PID file found."
+    local pid
 
-        if ps -p "${HTTPD_PID}" >/dev/null 2>&1
+    [[ ! "${*}" =~ ^(-D|-H)$ ]] && Msg "Accepted flags are -D and -H." && X 1
+
+    if [[ $1 == '-D' ]]
+    then
+        if [[ ! -r "${DNSMASQ_PID}" ]]
         then
-            echo "Process by PID not running."v
-            return 0
+            printf '%s\n' "PID file not found!"
+            return 1
+        else
+            pid=$(<"${DNSMASQ_PID}")
+            if ! ps -p "${DNSMASQ_PID}" >/dev/null 2>&1
+            then
+                printf 'The PID file indicates %s; however, no such process exists.\n' "\`${pid}\`"
+                return 1
+            fi
         fi
-        return 0
     fi
-    return 1
+
+
+
+ #    if [[ $1 == '-H' && ! -r "${HTTPD_PID}" ]]
+#     then
+#         printf '%s\n' "PID file not found!"
+#     else
+#        # pid=$(<"${HTTPD_PID}")
+#         if ! ps -p "${HTTPD_PID}" >/dev/null 2>&1
+#         then
+#             printf 'The PID file indicates %s; however, no such process exists\n' "${pid}"
+#         fi
+    #     fi
+
+
+    # final catch
+    return 2
 }
 :
 MASQ()
@@ -100,7 +115,6 @@ MASQ()
     local resolvFile; resolvFile="/etc/resolver/lan"
 
     [[ ! -d "/etc/resolver/" ]] && mkdir "/etc/resolver/"
-
 
     if [[ ! -f "${resolvFile}" ]]
     then
@@ -176,6 +190,7 @@ HTTPD()
 
 Listen()
 {
+    [[ ! "${*}" =~ ^(-D|-H)$ ]] && Msg "Accepted flags are -D and -H." && X 1
     case $1 in
         -D|--dns)
             # check if dnsmasq is using that port
@@ -227,10 +242,6 @@ Listen()
             Msg 'Logging ... '
             nc -k -l "${HTTPD_LOG_PORT}"
             X 103
-            ;;
-        *)
-            Msg "Accepted flags are -D and -H."
-            X 1
             ;;
     esac
 }
@@ -414,6 +425,10 @@ http-byob()
             ;;
         status)
             Status
+            ;;
+        check)
+            shift
+            check "${@}"
             ;;
         alien)
             check -H
