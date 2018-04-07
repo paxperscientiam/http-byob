@@ -71,7 +71,7 @@ gate() {
 }
 :
 check() {
-    [[ ! "${*}" =~ ^(-D|-H)$ ]] && Msg "Accepted flags are -D and -H." && X 1
+    isValid "${1}"
     :
     local pid
     :
@@ -94,6 +94,11 @@ check() {
         fi
     fi
     return 0
+}
+:
+isValid()
+{
+    [[ ! "${*}" =~ ^(-D|-H)$ ]] && Msg "Accepted flags are -D and -H." && X 1
 }
 :
 MASQ()
@@ -247,6 +252,8 @@ Start()
 # Stop
 Stop()
 {
+    isValid
+    :
     if [[ $1 == '-H' || "${#1}" -eq 0 ]]
     then
         if check -H >/dev/null 2>&1
@@ -280,6 +287,8 @@ Stop()
 
 Restart()
 {
+    isValid
+    :
     if [[ $1 == '-H' || "${#1}" -eq 0 ]]
     then
         if ! check -H
