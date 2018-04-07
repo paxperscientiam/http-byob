@@ -179,17 +179,21 @@ HTTPD()
 Listen()
 {
     [[ ! "${*}" =~ ^(-D|-H)$ ]] && Msg "Accepted flags are -D and -H." && X 1
+
+
+
+    exit
     case $1 in
         -D|--dns)
             # check if dnsmasq is using that port
-            if ! lsof -i tcp:"${DNS_PORT:=53}" | grep dnsmasq >/dev/null 2>&1
+            if ! lsof -n -i tcp:"${DNS_PORT:=53}" | grep dnsmasq >/dev/null 2>&1
             then
                 printf '%s' "Waiting for dnsmasq ... "
             fi
 
             # if it is not using it, wait for it
             (
-                while ! lsof -i :"${DNS_PORT}" | grep dnsmasq >/dev/null 2>&1
+                while ! lsof -n -i :"${DNS_PORT}" | grep dnsmasq >/dev/null 2>&1
                 do
                     waited='yes'
                     sleep 0.5
