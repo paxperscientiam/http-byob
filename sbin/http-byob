@@ -67,7 +67,7 @@ trap Msg EXIT
 :
 # permission check
 gate() {
-    [[ $UID -eq 0 ]] || exec sudo "$0" "$@"
+    [[ $UID -eq 0 ]] || exec sudo "$0" "${@}"
 }
 :
 check() {
@@ -83,27 +83,32 @@ check() {
             return 1
         else
             pid=$(<"${DNSMASQ_PID}")
-            if ! ps -p "${DNSMASQ_PID}" >/dev/null 2>&1
+            if ! ps -p "${pid}" >/dev/null 2>&1
             then
                 printf 'The PID file indicates %s; however, no such process exists.\n' "\`${pid}\`"
                 return 1
+            else
+                printf 'The PID file exists and corresponds to a valid process (%s)\n' "${pid}"
             fi
         fi
+        return 0
+    else
+        if [[ ! -r "${HTTPD_PID}" ]]
+        then
+            printf '%s\n' "PID file not found!"
+            return 1
+        else
+            pid=$(<"${HTTPD_PID}")
+            if ! ps -p "${pid}" >/dev/null 2>&1
+            then
+                printf 'The PID file indicates %s; however, no such process exists.\n' "\`${pid}\`"
+                return 1
+            else
+                printf 'The PID file exists and corresponds to a valid process (%s)\n' "${pid}"
+            fi
+        fi
+        return 0
     fi
-
-
-
- #    if [[ $1 == '-H' && ! -r "${HTTPD_PID}" ]]
-#     then
-#         printf '%s\n' "PID file not found!"
-#     else
-#        # pid=$(<"${HTTPD_PID}")
-#         if ! ps -p "${HTTPD_PID}" >/dev/null 2>&1
-#         then
-#             printf 'The PID file indicates %s; however, no such process exists\n' "${pid}"
-#         fi
-    #     fi
-
 
     # final catch
     return 2
@@ -154,8 +159,7 @@ MASQ()
         disown %1
         printf '%s\n' $'Starting `dnsmasq`.'
     else
-        pid=$(< "${DNSMASQ_PID}")
-        Msg "Dnsmasq seems to be running. ($pid)"
+        check -D
         X 100
     fi
 }
@@ -165,9 +169,7 @@ HTTPD()
     local pid
     [[ ! -x $HTTPD ]] && Msg "Apache httpd server not found" && X 1
     :
-    check -H
-    echo $?;exit
-    if [[ $? -ne 0 ]]
+    if ! check -H >/dev/null 2>&1
     then
         while IFS= read -r line; do
             printf '%s\n' "$line" | nc "${HOSTNAME}" "${HTTPD_LOG_PORT}"
@@ -181,8 +183,7 @@ HTTPD()
         disown %1
         printf '%s\n' $'Starting `httpd`. '
     else
-        pid=$(< "${HTTPD_PID}")
-        Msg "httpd seems to be running. ($pid)"
+        check -H
         X 100
     fi
 }
@@ -387,8 +388,8 @@ Status() {
 http-byob()
 {
     case $1 in
-        start  )
-            gate;
+        start)
+            gate "${@}"
             shift
             case $1 in
                 -D|--dnsmasq)
@@ -403,12 +404,12 @@ http-byob()
             Start
             ;;
         stop   )
-            gate stop
+            gate "${@}"
             shift
             Stop "${@}"
             ;;
         restart)
-            gate
+            gate "${@}"
             shift
             Restart "${@}"
             ;;
