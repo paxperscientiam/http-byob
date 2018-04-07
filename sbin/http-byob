@@ -335,26 +335,22 @@ Test()
         printf "Unable to source environment variables!\\n"
         X 1
     fi
-    for exe in ${exe[@]}; do
-        name="$(basename "${exe}")"
-        if [[ -x "${exe}" ]]; then
-            printf '%-20s found!' "${name}"
-            if [[ "${name}" == 'dnsmasq' ]]; then
-                printf '\t'
-                "${DNSMASQ}" -C "${DNSMASQ_CONFIG}" --test &
-                wait
-            elif [[  "${name}" == 'apachectl' ]]; then
-                printf '\t'
-                "${APACHECTL}" -f "${HTTPD_CONFIG}" -t &
-                wait
-                printf '\t'
-                "${APACHECTL}" -f "${HTTPD_CONFIG}" -S &
-                wait
-            fi
-        else
-            printf '%-20s not found!\n' "${name}"
-        fi
-    done
+
+    ## DNSMASQ
+    [[ ! -x $DNSMASQ ]] && Msg "Dnsmasq not found" && X 1
+    printf '%-20s found!\t'  "\`dnsmasq\`"
+    "${DNSMASQ}" -C "${DNSMASQ_CONFIG}" --test &
+    wait
+
+
+    [[ ! -x $APACHECTL ]] && Msg "Apache apachectl not found" && X 1
+    printf '%-20s found!\t'  "\`apachectl\`"
+    "${APACHECTL}" -f "${HTTPD_CONFIG}" -t &
+    wait
+    printf '\v'
+    "${APACHECTL}" -f "${HTTPD_CONFIG}" -S &
+    wait
+    printf "done\\n"
 }
 
 
