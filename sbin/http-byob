@@ -9,11 +9,14 @@ Clean() {
     then
         rm "${HTTPD_PID}" >/dev/null 2>&1
     fi
-
+    #
     if [[ $1 == '-D' || "${#1}" -eq 0 ]]
     then
         rm "${DNSMASQ_PID}" >/dev/null 2>&1
     fi
+    #
+    killall nc >/dev/null 2>&1
+
     # ipconfig set en1 DHCP &
     #     wait
     printf '%s\n' "Done cleaning."
@@ -31,36 +34,41 @@ X() {
 }
 
 Msg() {
-    [[ "${#1}" -gt 0 ]] && printf '%s\n\n' "${1}" && return
+    printf '%s\n\n' "${1}"
+    [[ "${#2}" -gt 0 ]] && exit "${2}"
+    return 0
 
-    if [[ $EXIT -eq 0 ]]
-    then
-        printf '\n\n%s\n' "That went suprisingly well."
-    elif [[ $EXIT -eq 1  ]]
-    then
-        printf '%s\n' "Error"
-    elif [[ $EXIT -eq 100 ]]
-    then
-        :
-    elif [[ $EXIT -eq 101 ]]
-    then
-        printf '%s\n' "Please run this script with sudo."
-    elif [[ $EXIT -eq 102 ]]
-    then
-        printf '%s\n' "Cleanup is complete."
-    elif [[ $EXIT -eq 103 ]]
-    then
-        printf '%s\n' "Logger closed."
-    elif [[ $EXIT -eq 104 ]]
-    then
-        printf '%s\n' "Dnsmasq stopped."
-    elif [[ $EXIT -eq 105 ]]
-    then
-        printf '%s\n' "httpd stopped."
-    elif [[ $EXIT -eq 106 ]]
-    then
-        printf '%s\n' "Logging facility does not exist."
-    fi
+ #    [[ "${#1}" -gt 0 ]] && printf '%s\n\n' "${1}" && return
+
+#     if [[ $EXIT -eq 0 ]]
+#     then
+#         printf '\n\n%s\n' "That went suprisingly well."
+#     elif [[ $EXIT -eq 1  ]]
+#     then
+#         printf '%s\n' "Error"
+#     elif [[ $EXIT -eq 100 ]]
+#     then
+#         :
+#     elif [[ $EXIT -eq 101 ]]
+#     then
+#         printf '%s\n' "Please run this script with sudo."
+#     elif [[ $EXIT -eq 102 ]]
+#     then
+#         printf '%s\n' "Cleanup is complete."
+#     elif [[ $EXIT -eq 103 ]]
+#     then
+#         printf '%s\n' "Logger closed."
+#     elif [[ $EXIT -eq 104 ]]
+#     then
+#         printf '%s\n' "Dnsmasq stopped."
+#     elif [[ $EXIT -eq 105 ]]
+#     then
+#         printf '%s\n' "httpd stopped."
+#     elif [[ $EXIT -eq 106 ]]
+#     then
+#         printf '%s\n' "Logging facility does not exist."
+    #     fi
+    :
 }
 trap Msg EXIT
 #################
@@ -98,7 +106,7 @@ check() {
 :
 isValid()
 {
-    [[ ! "${*}" =~ ^(-D|-H)$ ]] && Msg "Accepted flags are -D and -H." && X 1
+    [[ ! "${*}" =~ ^(-D|-H)$ ]] && Msg "Accepted flags are -D and -H." 1
 }
 :
 MASQ()
@@ -117,7 +125,7 @@ MASQ()
     fi
 
 
-    [[ ! -x $DNSMASQ ]] && Msg "Dnsmasq not found" && X 1
+    [[ ! -x $DNSMASQ ]] && Msg "Dnsmasq not found" 1
     :
     if ! check -D
     then
@@ -154,7 +162,7 @@ MASQ()
 HTTPD()
 {
     local pid
-    [[ ! -x $HTTPD ]] && Msg "Apache httpd server not found" && X 1
+    [[ ! -x $HTTPD ]] && Msg "Apache httpd server not found" 1
     :
     if ! check -H >/dev/null 2>&1
     then
@@ -178,7 +186,7 @@ HTTPD()
 
 Listen()
 {
-    [[ ! "${*}" =~ ^(-D|-H)$ ]] && Msg "Accepted flags are -D and -H." && X 1
+    [[ ! "${*}" =~ ^(-D|-H)$ ]] && Msg "Accepted flags are -D and -H." 1
     case $1 in
         -D|--dns)
             # check if dnsmasq is using that port
@@ -266,7 +274,6 @@ Stop()
         printf "done.\\n"
     fi
     :
-    killall nc >/dev/null 2>&1
 }
 
 Restart()
@@ -295,7 +302,9 @@ Restart()
 
     if [[ $1 == '-D' || "${#1}" -eq 0 ]]
     then
-        [[ ! -r "${DNSMASQ_PID}" ]] && Msg "No dnsmasq process found." && return
+        [[ ! -r "${DNSMASQ_PID}" ]] && \
+            Msg "No dnsmasq process found." && \
+            return
         Stop -D &
         wait
         Start -D
@@ -313,13 +322,13 @@ Test()
     fi
 
     ## DNSMASQ
-    [[ ! -x $DNSMASQ ]] && Msg "Dnsmasq not found" && X 1
+    [[ ! -x $DNSMASQ ]] && Msg "Dnsmasq not found" 1
     printf '%-20s found!\t'  "\`dnsmasq\`"
     "${DNSMASQ}" -C "${DNSMASQ_CONFIG}" --test &
     wait
 
 
-    [[ ! -x $APACHECTL ]] && Msg "Apache apachectl not found" && X 1
+    [[ ! -x $APACHECTL ]] && Msg "Apache apachectl not found" 1
     printf '%-20s found!\t'  "\`apachectl\`"
     "${APACHECTL}" -f "${HTTPD_CONFIG}" -t &
     wait
@@ -395,7 +404,7 @@ http-byob()
             Listen "${@}"
             ;;
         clean  )
-            Destroy
+            Clean
             ;;
         status)
             Status
