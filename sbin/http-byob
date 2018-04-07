@@ -147,7 +147,6 @@ MASQ()
                 --port="${DNS_PORT}" \
                 --local-service \
 		            --server=/lan/127.0.0.1 \
-                --listen-address=127.0.0.1 \
                 --address=/lan/127.0.0.1 \
                 --pid-file="${DNSMASQ_PID}" \
                 --cache-size=0 \
@@ -162,6 +161,7 @@ MASQ()
         check -D
         X 100
     fi
+
 }
 
 HTTPD()
