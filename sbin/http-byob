@@ -28,13 +28,8 @@ Destroy() {
 }
 trap Destroy SIGINT SIGQUIT
 :
-X() {
-    EXIT="${1:-0}"
-    exit "${EXIT}"
-}
-
 Msg() {
-    printf '%s\n\n' "${1}"
+    printf '%s\n\n' "${1:-... exiting.}"
     [[ "${#2}" -gt 0 ]] && exit "${2}"
     return 0
 
@@ -106,7 +101,7 @@ check() {
 :
 isValid()
 {
-    [[ ! "${*}" =~ ^(-D|-H)$ ]] && Msg "Accepted flags are -D and -H." 1
+    [[ ! "${*}" =~ ^(-D|-H|^$)$ ]] && Msg "Accepted flags are -D and -H." 1
 }
 :
 MASQ()
@@ -127,7 +122,7 @@ MASQ()
 
     [[ ! -x $DNSMASQ ]] && Msg "Dnsmasq not found" 1
     :
-    if ! check -D
+    if ! check -D >/dev/null 2>&1
     then
         while IFS= read -r line; do
             printf '%s\n' "$line" | nc "${HOSTNAME}" "${DNSMASQ_LOG_PORT}"
@@ -154,7 +149,7 @@ MASQ()
         printf '%s\n' $'Starting `dnsmasq`.'
     else
         check -D
-        X 100
+        exit 100
     fi
 
 }
@@ -162,7 +157,7 @@ MASQ()
 HTTPD()
 {
     local pid
-    [[ ! -x $HTTPD ]] && Msg "Apache httpd server not found" 1
+    [[ ! -x $HTTPD ]] && Msg 'Apache httpd server not found!' 1
     :
     if ! check -H >/dev/null 2>&1
     then
@@ -179,7 +174,7 @@ HTTPD()
         printf '%s\n' $'Starting `httpd`. '
     else
         check -H
-        X 100
+        exit 100
     fi
 }
 
@@ -208,14 +203,13 @@ Listen()
 
             Msg 'Logging ... '
             nc -k -l "${DNSMASQ_LOG_PORT}"
-            X 103
+            Msg "logger closed." 103
             ;;
         -H|--access|--httpd)
             # check if port is accessible
             if ! nc -z "${HOSTNAME}" 80 >/dev/null 2>&1
             then
-                printf '%s\n' "Cannot connect to port 80."
-                X 1
+                Msg "Cannot connect to port 80." 1
             fi
 
             # check if httpd is using that port
@@ -237,7 +231,7 @@ Listen()
 
             Msg 'Logging ... '
             nc -k -l "${HTTPD_LOG_PORT}"
-            X 103
+            Msg "Logger closed." 103
             ;;
     esac
 }
@@ -254,6 +248,7 @@ Start()
     then
         HTTPD
     fi
+    exit
 }
 
 #
@@ -262,9 +257,10 @@ Stop()
 {
     isValid "${1}"
 
-    local Q; Q="${1#\-}"
-    local pid_file_ref; pid_file_ref="$Q[pid]"
-    local proc_ref; proc_ref="$Q[proc]"
+    [[ "${#1}" -gt 0 ]] && \
+        local Q; Q="${1#\-}" && \
+        local pid_file_ref; pid_file_ref="$Q[pid]" && \
+        local proc_ref; proc_ref="$Q[proc]"
 
     if check "${1}" >/dev/null 2>&1
     then
@@ -296,7 +292,7 @@ Restart()
             # test if restart was successful
             printf '%s (%s)\n' "failed." "$?"
             Clean -H
-            X 101
+            Msg "Please run this script with sudo" 101
         fi
     fi
 
@@ -317,8 +313,7 @@ Test()
     local name
     if ! source './sbin/lib/env' >/dev/null 2>&1
     then
-        printf "Unable to source environment variables!\\n"
-        X 1
+        Msg "Unable to source environment variables!" 1
     fi
 
     ## DNSMASQ
@@ -342,7 +337,7 @@ Test()
 Status() {
     local pid
     tput sgr0 # turn off text attributes
-    tput clear # clear stuff away
+    #tput clear # clear stuff away
     ps -o "ppid,pid,etime,user,comm" | head -n 1 | column -t
 
     while IFS= read -r line; do
@@ -376,11 +371,11 @@ http-byob()
             case $1 in
                 -D|--dnsmasq)
                     Start -D
-                    X 0
+                    exit
                     ;;
                 -H|--httpd)
                     Start -H
-                    X 0
+                    exit
                     ;;
             esac
             Start
@@ -416,11 +411,10 @@ http-byob()
         alien)
             check -H
             echo $?
-            X 0
+            exit
             ;;
         *)
-            echo "Unknown option: try 'Start', 'Stop', 'Restart' or 'Test'"
-            X 1
+            Msg "Unknown option: try 'Start', 'Stop', 'Restart' or 'Test'" 1
             ;;
     esac
 }
@@ -447,11 +441,10 @@ elif [[ "${BASH_SOURCE[0]}" == 'sbin/http-byob' ]]
 then
     if ! source './sbin/lib/env' >/dev/null 2>&1
     then
-        printf "Unable to source environment variables!\\n"
-        X 1
+        Msg "Unable to source environment variables!" 1
     fi
     http-byob "${@}"
 else
     printf '%s\n' "\`http-byob\` must be invoked from the container root -- \"sbin/http-byob\". Also, avoid using aliases!"
-    X 1
+    exit 1
 fi
