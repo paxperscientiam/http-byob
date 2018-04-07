@@ -21,8 +21,7 @@ Clean() {
     #     wait
     printf '%s\n' "Done cleaning."
 }
-
-
+:
 Destroy() {
     tput clear
 }
@@ -32,38 +31,6 @@ Msg() {
     printf '%s\n\n' "${1:-... exiting.}"
     [[ "${#2}" -gt 0 ]] && exit "${2}"
     return 0
-
- #    [[ "${#1}" -gt 0 ]] && printf '%s\n\n' "${1}" && return
-
-#     if [[ $EXIT -eq 0 ]]
-#     then
-#         printf '\n\n%s\n' "That went suprisingly well."
-#     elif [[ $EXIT -eq 1  ]]
-#     then
-#         printf '%s\n' "Error"
-#     elif [[ $EXIT -eq 100 ]]
-#     then
-#         :
-#     elif [[ $EXIT -eq 101 ]]
-#     then
-#         printf '%s\n' "Please run this script with sudo."
-#     elif [[ $EXIT -eq 102 ]]
-#     then
-#         printf '%s\n' "Cleanup is complete."
-#     elif [[ $EXIT -eq 103 ]]
-#     then
-#         printf '%s\n' "Logger closed."
-#     elif [[ $EXIT -eq 104 ]]
-#     then
-#         printf '%s\n' "Dnsmasq stopped."
-#     elif [[ $EXIT -eq 105 ]]
-#     then
-#         printf '%s\n' "httpd stopped."
-#     elif [[ $EXIT -eq 106 ]]
-#     then
-#         printf '%s\n' "Logging facility does not exist."
-    #     fi
-    :
 }
 trap Msg EXIT
 #################
