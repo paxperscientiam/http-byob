@@ -71,47 +71,29 @@ gate() {
 }
 :
 check() {
-    local pid
-
     [[ ! "${*}" =~ ^(-D|-H)$ ]] && Msg "Accepted flags are -D and -H." && X 1
+    :
+    local pid
+    :
+    local Q; Q="${1#\-}"
+    local pid_file_ref; pid_file_ref="$Q[pid]"
 
-    if [[ $1 == '-D' ]]
+
+    if [[ ! -r "${!pid_file_ref}" ]]
     then
-        if [[ ! -r "${DNSMASQ_PID}" ]]
-        then
-            printf '%s\n' "PID file not found!"
-            return 1
-        else
-            pid=$(<"${DNSMASQ_PID}")
-            if ! ps -p "${pid}" >/dev/null 2>&1
-            then
-                printf 'The PID file indicates %s; however, no such process exists.\n' "\`${pid}\`"
-                return 1
-            else
-                printf 'The PID file exists and corresponds to a valid process (%s)\n' "${pid}"
-            fi
-        fi
-        return 0
+        printf '%s\n' "PID file not found!"
+        return 1
     else
-        if [[ ! -r "${HTTPD_PID}" ]]
+        pid=$(<"${!pid_file_ref}")
+        if ! ps -p "${pid}" >/dev/null 2>&1
         then
-            printf '%s\n' "PID file not found!"
+            printf 'The PID file indicates %s; however, no such process exists.\n' "\`${pid}\`"
             return 1
         else
-            pid=$(<"${HTTPD_PID}")
-            if ! ps -p "${pid}" >/dev/null 2>&1
-            then
-                printf 'The PID file indicates %s; however, no such process exists.\n' "\`${pid}\`"
-                return 1
-            else
-                printf 'The PID file exists and corresponds to a valid process (%s)\n' "${pid}"
-            fi
+            printf 'The PID file exists and corresponds to a valid process (%s)\n' "${pid}"
         fi
-        return 0
     fi
-
-    # final catch
-    return 2
+    return 0
 }
 :
 MASQ()
@@ -144,7 +126,7 @@ MASQ()
                 --stop-dns-rebind \
                 --bind-interfaces \
                 --user="${HTTPD_USER}" \
-                --port="${DNS_PORT}" \
+                --port="${DNS_PORT:=53}" \
                 --local-service \
 		            --server=/lan/127.0.0.1 \
                 --address=/lan/127.0.0.1 \
@@ -195,7 +177,7 @@ Listen()
     case $1 in
         -D|--dns)
             # check if dnsmasq is using that port
-            if ! lsof -i tcp:"${DNS_PORT}" | grep dnsmasq >/dev/null 2>&1
+            if ! lsof -i tcp:"${DNS_PORT:=53}" | grep dnsmasq >/dev/null 2>&1
             then
                 printf '%s' "Waiting for dnsmasq ... "
             fi
@@ -400,7 +382,7 @@ http-byob()
             esac
             Start
             ;;
-        stop   )
+        stop)
             gate "${@}"
             shift
             Stop "${@}"
@@ -426,7 +408,7 @@ http-byob()
             ;;
         check)
             shift
-            check "${@}"
+            check "${1}"
             ;;
         alien)
             check -H

@@ -39,8 +39,17 @@ export DNSMASQ_LOG_PORT=9005
 :
 export HTTPD_LOG_PORT=9000
 
-
 export DNS_PORT=53
+
+
+declare -A D
+D[port]="${DNS_PORT}"
+D[pid]="${DNSMASQ_PID}"
+
+declare -A H
+export H
+H[port]="${HTTPD_PORT}"
+H[pid]="${HTTPD_PID}"
 
 # unncessary
 #PHP_CONFIG="${PHP_ROOT}/php-dev.ini"

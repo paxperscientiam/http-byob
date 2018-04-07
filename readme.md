@@ -41,5 +41,13 @@ This assumes a directory structure like this (relative to repo):
 
 
 
+
+
+Note
+===
+`http-byob` is meant to work offline. Not sure why, but there seems to be an issue with Safari when disconnected from the Internet.
+
+
+
 --local-service
 Accept DNS queries only from hosts whose address is on a local subnet, ie a subnet for which an interface exists on the server. This option only has effect if there are no --interface --except-interface, --listen-address or --auth-server options. It is intended to be set as a default on installation, to allow unconfigured installations to be useful but also safe from being used for DNS amplification attacks.
