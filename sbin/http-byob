@@ -271,7 +271,7 @@ Stop()
 
 Restart()
 {
-    isValid
+    isValid "${1}"
     :
     if [[ $1 == '-H' || "${#1}" -eq 0 ]]
     then
