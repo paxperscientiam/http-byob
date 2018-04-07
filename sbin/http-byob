@@ -257,6 +257,20 @@ Stop()
 {
     isValid "${1}"
 
+    if [[ "${#1}" -eq 0 ]]; then
+        for i in D H
+        do
+            x="$i[pid]"
+            y="$i[proc]"
+            pkill -TERM -F "${!x}" >/dev/null 2>&1 &
+            printf 'Stopping %s (%s) ... ' "${!y}" "${!z}"
+            wait
+            printf 'done.\n'
+        done
+        exit
+    fi
+
+
     [[ "${#1}" -gt 0 ]] && \
         local Q; Q="${1#\-}" && \
         local pid_file_ref; pid_file_ref="$Q[pid]" && \
@@ -267,7 +281,7 @@ Stop()
         pkill -TERM -F "${!pid_file_ref}" >/dev/null 2>&1 &
         printf 'Stopping %s ... ' "${!proc_ref}"
         wait
-        printf "done.\\n"
+        printf 'done.\n'
     fi
     :
 }
