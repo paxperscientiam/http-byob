@@ -283,15 +283,17 @@ Stop()
 
     if [[ $1 == '-D' || "${#1}" -eq 0 ]]
     then
-        pkill -9 -F "${DNSMASQ_PID}" dnsmasq >/dev/null 2>&1 & wait
-        if check -D
+        if check -D >/dev/null 2>&1
         then
-            rm "${DNSMASQ_PID}" >/dev/null 2>&1
+            pkill -9 -F "${DNSMASQ_PID}" dnsmasq >/dev/null 2>&1 &
+            wait
             Msg "dnsmasq process stopped."
         else
             Msg "No dnsmasq process found."
         fi
+        rm "${DNSMASQ_PID}" >/dev/null 2>&1
     fi
+    :
     killall nc >/dev/null 2>&1
 }
 
