@@ -179,21 +179,17 @@ HTTPD()
 Listen()
 {
     [[ ! "${*}" =~ ^(-D|-H)$ ]] && Msg "Accepted flags are -D and -H." && X 1
-
-
-
-    exit
     case $1 in
         -D|--dns)
             # check if dnsmasq is using that port
-            if ! lsof -n -i tcp:"${DNS_PORT:=53}" | grep dnsmasq >/dev/null 2>&1
+            if ! lsof -n -iTCP:"${DNS_PORT:=53}" | grep dnsmasq >/dev/null 2>&1
             then
                 printf '%s' "Waiting for dnsmasq ... "
             fi
 
             # if it is not using it, wait for it
             (
-                while ! lsof -n -i :"${DNS_PORT}" | grep dnsmasq >/dev/null 2>&1
+                while ! lsof -n -iTCP:"${DNS_PORT}" | grep dnsmasq >/dev/null 2>&1
                 do
                     waited='yes'
                     sleep 0.5
@@ -215,14 +211,14 @@ Listen()
             fi
 
             # check if httpd is using that port
-            if ! lsof -i :80 | grep httpd >/dev/null 2>&1
+            if ! lsof -n -iTCP:80 | grep httpd >/dev/null 2>&1
             then
                 printf '%s' "Waiting for httpd ... "
             fi
 
             # if it is not using it, wait for it
             (
-                while ! lsof -i :80 | grep httpd >/dev/null 2>&1
+                while ! lsof -n -iTCP:80 | grep httpd >/dev/null 2>&1
                 do
                     waited='yes'
                     sleep 0.5
@@ -256,34 +252,18 @@ Start()
 # Stop
 Stop()
 {
-    isValid
-    :
-    if [[ $1 == '-H' || "${#1}" -eq 0 ]]
-    then
-        if check -H >/dev/null 2>&1
-        then
-            pkill -TERM -F "${HTTPD_PID}" httpd >/dev/null 2>&1 &
-            printf '%s' "Stopping Apache httpd ... "
-            wait
-            printf "done.\\n"
-        else
-            Msg "No httpd process found."
-        fi
-        rm "${HTTPD_PID}" >/dev/null 2>&1
-    fi
+    isValid "${1}"
 
-    if [[ $1 == '-D' || "${#1}" -eq 0 ]]
+    local Q; Q="${1#\-}"
+    local pid_file_ref; pid_file_ref="$Q[pid]"
+    local proc_ref; proc_ref="$Q[proc]"
+
+    if check "${1}" >/dev/null 2>&1
     then
-        if check -D >/dev/null 2>&1
-        then
-            pkill -9 -F "${DNSMASQ_PID}" dnsmasq >/dev/null 2>&1 &
-            printf '%s' "Stopping dnsmasq ... "
-            wait
-            printf "done.\\n"
-        else
-            Msg "No dnsmasq process found."
-        fi
-        rm "${DNSMASQ_PID}" >/dev/null 2>&1
+        pkill -TERM -F "${!pid_file_ref}" >/dev/null 2>&1 &
+        printf 'Stopping %s ... ' "${!proc_ref}"
+        wait
+        printf "done.\\n"
     fi
     :
     killall nc >/dev/null 2>&1

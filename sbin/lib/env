@@ -43,11 +43,13 @@ export DNS_PORT=53
 
 
 declare -A D
+D[proc]='dnsmasq'
 D[port]="${DNS_PORT}"
 D[pid]="${DNSMASQ_PID}"
 
 declare -A H
 export H
+H[proc]='httpd'
 H[port]="${HTTPD_PORT}"
 H[pid]="${HTTPD_PID}"
 
