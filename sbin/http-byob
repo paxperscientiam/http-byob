@@ -286,6 +286,7 @@ Restart()
         then
             printf '%s (%s)\n' "done." "$?"
         else
+            # test if restart was successful
             printf '%s (%s)\n' "failed." "$?"
             Clean -H
             X 101
