@@ -267,18 +267,16 @@ Stop()
 {
     if [[ $1 == '-H' || "${#1}" -eq 0 ]]
     then
-        pkill -TERM -F "${HTTPD_PID}" >/dev/null 2>&1 &
-        printf '%s' "Stopping Apache httpd ... "
-        wait
-        printf '%s (%s)\n' "done." "$?"
-
-        if check -H
+        if check -H >/dev/null 2>&1
         then
-            rm "${HTTPD_PID}" >/dev/null 2>&1
-            Msg "httpd proccesses stopped."
+            pkill -TERM -F "${HTTPD_PID}" httpd >/dev/null 2>&1 &
+            printf '%s' "Stopping Apache httpd ... "
+            wait
+            printf "done.\\n"
         else
             Msg "No httpd process found."
         fi
+        rm "${HTTPD_PID}" >/dev/null 2>&1
     fi
 
     if [[ $1 == '-D' || "${#1}" -eq 0 ]]
@@ -286,8 +284,9 @@ Stop()
         if check -D >/dev/null 2>&1
         then
             pkill -9 -F "${DNSMASQ_PID}" dnsmasq >/dev/null 2>&1 &
+            printf '%s' "Stopping dnsmasq ... "
             wait
-            Msg "dnsmasq process stopped."
+            printf "done.\\n"
         else
             Msg "No dnsmasq process found."
         fi
