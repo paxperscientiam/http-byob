@@ -1,6 +1,5 @@
 {
   "name": "http-byob",
-  "version": "1.3.0",
   "description": "\"http-byob is my little attempt at creating a faux container for a DAMP stack.\"",
   "main": "index.js",
   "repository": "git@github.com:paxperscientiam/http-byob.git",
