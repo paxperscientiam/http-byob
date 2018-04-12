@@ -5,3 +5,7 @@ var/run/
 *.bak
 
 .DS_Store
+
+report.txt
+done.txt
+todo.txt
