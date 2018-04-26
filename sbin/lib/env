@@ -4,9 +4,27 @@ HTTPD_USER=$(logname)
 
 ########################
 # Executables
-export HTTPD="/opt/local/sbin/httpd"
-export DNSMASQ="/opt/local/sbin/dnsmasq"
-export APACHECTL="/opt/local/sbin/apachectl"
+if [[ -x /opt/local/sbin/httpd ]]; then
+    HTTPD="/opt/local/sbin/httpd"
+else
+    HTTPD=httpd
+fi
+
+if [[ -x "/opt/local/sbin/apachectl" ]]; then
+    APACHECTL="/opt/local/sbin/apachectl"
+else
+    APACHECTL=apachectl
+fi
+
+if [[ -x "/opt/local/sbin/dnsmasq" ]]; then
+    DNSMASQ="/opt/local/sbin/dnsmasq"
+else
+    DNSMASQ=dnsmasq
+fi
+
+export HTTPD
+export APACHECTL
+export DNSMASQ
 export eval exe=("${APACHECTL} ${DNSMASQ}")
 
 
@@ -39,7 +57,7 @@ export DNSMASQ_LOG_PORT=9005
 :
 export HTTPD_LOG_PORT=9000
 
-export DNS_PORT=53
+#export DNS_PORT=53
 
 
 declare -A D

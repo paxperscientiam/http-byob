@@ -23,7 +23,8 @@ Clean() {
 }
 :
 Destroy() {
-    tput clear
+    #    tput clear
+    :
 }
 trap Destroy SIGINT SIGQUIT
 :
@@ -73,7 +74,9 @@ isValid()
 :
 MASQ()
 {
+    # Note: dnsmasq is configured NOT to read config file
     local pid
+
     local resolvFile; resolvFile="/etc/resolver/lan"
 
     [[ ! -d "/etc/resolver/" ]] && mkdir "/etc/resolver/"
@@ -92,7 +95,8 @@ MASQ()
     if ! check -D >/dev/null 2>&1
     then
         while IFS= read -r line; do
-            printf '%s\n' "$line" | nc "${HOSTNAME}" "${DNSMASQ_LOG_PORT}"
+            :
+            #printf '%s\n' "$line" | nc "${HOSTNAME}" "${DNSMASQ_LOG_PORT}"
         done < <(
             "${DNSMASQ}" \
                 --log-queries \
@@ -101,7 +105,7 @@ MASQ()
                 --stop-dns-rebind \
                 --bind-interfaces \
                 --user="${HTTPD_USER}" \
-                --port="${DNS_PORT:=53}" \
+                --port="${DNS_PORT}" \
                 --local-service \
 		            --server=/lan/127.0.0.1 \
                 --address=/lan/127.0.0.1 \
@@ -152,10 +156,10 @@ Listen()
     case $1 in
         -D|--dns)
             # check if dnsmasq is using that port
-            if ! lsof -n -iTCP:"${DNS_PORT:=53}" | grep dnsmasq >/dev/null 2>&1
-            then
-                printf '%s' "Waiting for dnsmasq ... "
-            fi
+         #    if ! lsof -n -iTCP:"${DNS_PORT}" | grep dnsmasq >/dev/null 2>&1
+#             then
+#                 printf '%s' "Waiting for dnsmasq ... "
+#             fi
 
             # if it is not using it, wait for it
             (
@@ -341,7 +345,37 @@ Status() {
     wait
 }
 
-
+entry(){
+    if [[ ${BASH_SOURCE[0]} != "${0}" ]]; then
+        unset -f http-byob
+        if [[ "${*}" =~ '--activate' ]]; then
+        bash --rcfile <(read -r httpbyob_shell < \
+                             <(printf '%s' "export PS1=\"( BYOB ) ${PS1}\" ;\
+                                          alias sudo='sudo ';\
+                                          unset PROMPT_COMMAND;\
+                                          alias status=\"sbin/http-byob status\";\
+                                          alias start=\"sbin/http-byob start \";\
+                                          alias stop=\"sbin/http-byob stop \";\
+                                          alias restart=\"sbin/http-byob restart \";\
+                                          alias test=\"sbin/http-byob test \";\
+                                          alias listen=\"sbin/http-byob listen \";\
+                                          set +o history;\
+                                          "); printf '%s'  "${httpbyob_shell}") -i
+        return
+    fi
+        printf '%s\n' "\`http-byob\` is not meant to be sourced!"
+    elif [[ "${BASH_SOURCE[0]}" == 'sbin/http-byob' ]]
+    then
+        if ! source './sbin/lib/env' >/dev/null 2>&1
+        then
+            Msg "Unable to source environment variables!" 1
+        fi
+        [[ ! "${1}" == 'Test' ]] && http-byob "${@}"
+    else
+        printf '%s\n' "\`http-byob\` must be invoked from the container root -- \"sbin/http-byob\". Also, avoid using aliases!"
+        exit 1
+    fi
+}
 
 http-byob()
 {
@@ -400,32 +434,9 @@ http-byob()
     esac
 }
 
-if [[ ${BASH_SOURCE[0]} != "${0}" ]]; then
-    unset -f http-byob
-    if [[ "${*}" =~ '--activate' ]]; then
-        bash --rcfile <(read -r httpbyob_shell < \
-                             <(printf '%s' "export PS1=\"( BYOB ) ${PS1}\" ;\
-                                          alias sudo='sudo ';\
-                                          unset PROMPT_COMMAND;\
-                                          alias status=\"sbin/http-byob status\";\
-                                          alias start=\"sbin/http-byob start \";\
-                                          alias stop=\"sbin/http-byob stop \";\
-                                          alias restart=\"sbin/http-byob restart \";\
-                                          alias test=\"sbin/http-byob test \";\
-                                          alias listen=\"sbin/http-byob listen \";\
-                                          set +o history;\
-                                          "); printf '%s'  "${httpbyob_shell}") -i
-        return
-    fi
-    printf '%s\n' "\`http-byob\` is not meant to be sourced!"
-elif [[ "${BASH_SOURCE[0]}" == 'sbin/http-byob' ]]
-then
-    if ! source './sbin/lib/env' >/dev/null 2>&1
-    then
-        Msg "Unable to source environment variables!" 1
-    fi
-    http-byob "${@}"
-else
-    printf '%s\n' "\`http-byob\` must be invoked from the container root -- \"sbin/http-byob\". Also, avoid using aliases!"
-    exit 1
-fi
+
+# DEFAULTS
+DNS_PORT="${DNS_PORT:=53}"
+HTTPD_USER="${HTTPD_USER:=$USER}"
+
+entry "${@}"
