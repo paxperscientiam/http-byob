@@ -74,6 +74,8 @@ isValid()
 :
 MASQ()
 {
+    # maybe use a virtual file resolver?
+
     # Note: dnsmasq is configured NOT to read config file
     local pid
 
@@ -81,13 +83,8 @@ MASQ()
 
     [[ ! -d "/etc/resolver/" ]] && mkdir "/etc/resolver/"
 
-    if [[ ! -f "${resolvFile}" ]]
-    then
-        touch "${resolvFile}"
-	      printf '%s\n' "nameserver 127.0.0.1" >| "${resolvFile}"
-    else
-        printf '%s\n' "nameserver 127.0.0.1" >| "${resolvFile}"
-    fi
+    [[ ! -f "${resolvFile}" ]] && touch "${resolvFile}"
+	  printf '%s\n' "nameserver 127.0.0.1" >| "${resolvFile}"
 
 
     [[ ! -x $DNSMASQ ]] && Msg "Dnsmasq not found" 1
@@ -95,8 +92,7 @@ MASQ()
     if ! check -D >/dev/null 2>&1
     then
         while IFS= read -r line; do
-            :
-            #printf '%s\n' "$line" | nc "${HOSTNAME}" "${DNSMASQ_LOG_PORT}"
+            printf '%s\n' "$line" | nc "${HOSTNAME}" "${DNSMASQ_LOG_PORT}"
         done < <(
             "${DNSMASQ}" \
                 --log-queries \
@@ -155,6 +151,8 @@ Listen()
     [[ ! "${*}" =~ ^(-D|-H)$ ]] && Msg "Accepted flags are -D and -H." 1
     case $1 in
         -D|--dns)
+            nc -k -l 9005
+            wait
             # check if dnsmasq is using that port
          #    if ! lsof -n -iTCP:"${DNS_PORT}" | grep dnsmasq >/dev/null 2>&1
 #             then
