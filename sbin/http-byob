@@ -231,8 +231,9 @@ Stop()
         do
             x="$i[pid]"
             y="$i[proc]"
+            z=$(<"${!x}")
             pkill -TERM -F "${!x}" >/dev/null 2>&1 &
-            printf 'Stopping %s (%s) ... ' "${!y}" "${!z}"
+            printf 'Stopping %s (%s) ... ' "${!y}" "${z}"
             wait
             printf 'done.\n'
         done
@@ -293,27 +294,53 @@ Restart()
 
 Test()
 {
-    local name
+    local ERR
+    local var
+
+
     if ! source './sbin/lib/env' >/dev/null 2>&1
     then
         Msg "Unable to source environment variables!" 1
     fi
 
-    ## DNSMASQ
+    [[ -z $HTTPD ]] && Msg 'httpd not found!' 1
+
+    [[ -z $APACHECTL ]] && Msg 'apachectl not found!' 1
+    printf '%-20s found!\t'  "\`apachectl\`"
+    "${APACHECTL}" -f "${HTTPD_CONFIG}" -t &
+    wait
+    printf '\v\v'
+    "${APACHECTL}" -f "${HTTPD_CONFIG}" -S &
+    wait
+    printf '\v\v'
+
+
+    [[ -z $DNSMASQ ]] && Msg 'dnsmasq not found!' 1
     [[ ! -x $DNSMASQ ]] && Msg "Dnsmasq not found" 1
     printf '%-20s found!\t'  "\`dnsmasq\`"
     "${DNSMASQ}" -C "${DNSMASQ_CONFIG}" --test &
     wait
+    printf '\v\v'
 
 
-    [[ ! -x $APACHECTL ]] && Msg "Apache apachectl not found" 1
-    printf '%-20s found!\t'  "\`apachectl\`"
-    "${APACHECTL}" -f "${HTTPD_CONFIG}" -t &
-    wait
-    printf '\v'
-    "${APACHECTL}" -f "${HTTPD_CONFIG}" -S &
-    wait
-    printf "done\\n"
+    printf 'Now testing variables ... \n\n'
+    for var in DNS_PORT HTTPD_PORT DNSMASQ_LOG_PORT HTTPD_LOG_PORT;
+    do
+        if [[ ${!var} -eq 0 ]];then
+            ERR='ERR'
+        else
+            ERR=''
+        fi
+        printf '%-30s%s\n' "${var}:${!var}" "${ERR:+ERR!}"
+    done
+
+
+
+
+#         printf 'DNS_PORT
+#     [[ $HTTPD_PORT -eq 0 ]] && Msg "HTTPD_PORT not properly defined! $HTTPD_PORT"
+
+
 }
 
 

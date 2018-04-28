@@ -2,62 +2,66 @@
 export HTTPD_USER
 HTTPD_USER=$(logname)
 
+
+###############
+# DECLARATIONS
+###############
+declare -i DNS_PORT=53
+declare -xi HTTPD_PORT=80
+
+declare -i DNSMASQ_LOG_PORT=9005
+declare -i HTTPD_LOG_PORT=9000
+
+declare -xr HTTPD_VHOST_CUSTOM_LOG=/dev/null
+declare -xr HTTPD_VHOST_ERROR_LOG=/dev/null
+
+
+declare -xr HTTPD_SERVER_NAME="localhost"
+
+
+# will only override what is allowed
+source http_byob.cfg >/dev/null 2>&1
+
+
+
 ########################
-# Executables
-if [[ -x /opt/local/sbin/httpd ]]; then
-    HTTPD="/opt/local/sbin/httpd"
-else
-    HTTPD=httpd
-fi
+# FIND EXECUTABLES
+declare -r HTTPD_TMP=$(which httpd)
+declare HTTPD="${HTTPD:=${HTTPD_TMP}}"
 
-if [[ -x "/opt/local/sbin/apachectl" ]]; then
-    APACHECTL="/opt/local/sbin/apachectl"
-else
-    APACHECTL=apachectl
-fi
+declare -r DNSMASQ_TMP=$(which dnsmasq)
+declare DNSMASQ="${DNSMASQ:=${DNSMASQ_TMP}}"
 
-if [[ -x "/opt/local/sbin/dnsmasq" ]]; then
-    DNSMASQ="/opt/local/sbin/dnsmasq"
-else
-    DNSMASQ=dnsmasq
-fi
+declare -r APACHECTL_TMP=$(which apachectl)
+declare APACHECTL="${APACHECTL:=${APACHECTL_TMP}}"
 
-export HTTPD
-export APACHECTL
-export DNSMASQ
+[[ ! -x "${HTTPD}" ]] && HTTPD=''
+[[ ! -x "${DNSMASQ}" ]] && DNSMASQ=''
+[[ ! -x "${APACHECTL}" ]] && APACHECTL=''
+
 export eval exe=("${APACHECTL} ${DNSMASQ}")
 
 
+#
+declare -xr HTTP_SERVER_ROOT=$(dirname $(dirname $HTTPD))
+declare -xr HTTPD_ROOT=$(pwd)
 
-# pass through variables
-export HTTP_SERVER_ROOT="/opt/local"
-export HTTPD_ROOT; HTTPD_ROOT=$(pwd)
 
 # Apache says it NOT include trailing slash
-export HTTPD_DOCUMENT_ROOT="${HTTPD_ROOT}/www"
-export PHP_ROOT="${HTTPD_ROOT}/etc/php72/"
-export DNSMASQ_PID="${HTTPD_ROOT}/var/run/dnsmasq.pid"
-export HTTPD_PID="${HTTPD_ROOT}/var/run/httpd.pid"
+declare -xr HTTPD_DOCUMENT_ROOT="${HTTPD_ROOT}/www"
+declare -xr PHP_ROOT="${HTTPD_ROOT}/etc/php72/"
+declare -xr DNSMASQ_PID="${HTTPD_ROOT}/var/run/dnsmasq.pid"
+declare -xr HTTPD_PID="${HTTPD_ROOT}/var/run/httpd.pid"
 :
 export DNS_RESOLV="${HTTPD_ROOT}/etc/resolv.conf"
 export DNS_HOSTS="${HTTPD_ROOT}/etc/hosts"
 
-export HTTPD_SERVER_NAME="localhost"
 
 # Configs
-export HTTPD_CONFIG="${HTTPD_ROOT}/conf/httpd.conf"
-export DNSMASQ_CONFIG="${HTTPD_ROOT}/etc/dnsmasq.conf"
+declare -xr HTTPD_CONFIG="${HTTPD_ROOT}/conf/httpd.conf"
+declare -xr DNSMASQ_CONFIG="${HTTPD_ROOT}/etc/dnsmasq.conf"
 
 
-export HTTPD_VHOST_CUSTOM_LOG=/dev/null
-export HTTPD_VHOST_ERROR_LOG=/dev/null
-
-
-export DNSMASQ_LOG_PORT=9005
-:
-export HTTPD_LOG_PORT=9000
-
-#export DNS_PORT=53
 
 
 declare -A D
@@ -70,6 +74,10 @@ export H
 H[proc]='httpd'
 H[port]="${HTTPD_PORT}"
 H[pid]="${HTTPD_PID}"
+
+
+
+
 
 # unncessary
 #PHP_CONFIG="${PHP_ROOT}/php-dev.ini"
