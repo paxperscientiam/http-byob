@@ -231,6 +231,7 @@ Stop()
         do
             x="$i[pid]"
             y="$i[proc]"
+            [[ ! -r "${!x}" ]] && continue
             z=$(<"${!x}")
             pkill -TERM -F "${!x}" >/dev/null 2>&1 &
             printf 'Stopping %s (%s) ... ' "${!y}" "${z}"
