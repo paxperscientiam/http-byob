@@ -18,10 +18,10 @@ Usage
 Oh shoot, I need to add a help menu!
 
 Start:
-* `sudo sbin/demon start`
+* `[sudo] sbin/demon start`
 
 Stop:
-* `sudo sbin/demon stop`
+* `[sudo] sbin/demon stop`
 
 I decided to use named pipe for handling logging. That way, I think, disk access is limited.
 
