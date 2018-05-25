@@ -316,7 +316,7 @@ Test()
 
     [[ -z $APACHECTL ]] && Msg 'apachectl not found!' 1
     :
-    "${APACHECTL}" -f "${HTTPD_CONFIG}" -t -D DUMP_INCLUDES | awk '{ print $1, $2}' |column -t &
+    "${APACHECTL}" -f "${HTTPD_CONFIG}" -t -D DUMP_INCLUDES | awk -F "|" '{ print $1, $2}' |column -t &
     wait
     #"${APACHECTL}" -f "${HTTPD_CONFIG}" -t -D DUMP_VHOSTS | awk '{ print  $3 }' &
     wait
