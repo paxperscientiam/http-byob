@@ -299,6 +299,14 @@ Test()
     local var
 
 
+
+   #  if lsof -n -iTCP:"${HTTPD_PORT}" | awk '{print $1,$3}' | column -t
+#     then
+#         printf 'Port %s is occupied.\n' "${HTTPD_PORT}"
+#     fi
+#     printf '\v\v'
+
+
     if ! source './sbin/lib/env' >/dev/null 2>&1
     then
         Msg "Unable to source environment variables!" 1
@@ -307,23 +315,24 @@ Test()
     [[ -z $HTTPD ]] && Msg 'httpd not found!' 1
 
     [[ -z $APACHECTL ]] && Msg 'apachectl not found!' 1
-    printf '%-20s found!\t'  "\`apachectl\`"
-    "${APACHECTL}" -f "${HTTPD_CONFIG}" -t &
+    :
+    "${APACHECTL}" -f "${HTTPD_CONFIG}" -t -D DUMP_INCLUDES | awk '{ print $1, $2}' |column -t &
+    wait
+    #"${APACHECTL}" -f "${HTTPD_CONFIG}" -t -D DUMP_VHOSTS | awk '{ print  $3 }' &
     wait
     printf '\v\v'
-    "${APACHECTL}" -f "${HTTPD_CONFIG}" -S &
+    #"${APACHECTL}" -f "${HTTPD_CONFIG}" -S &
     wait
     printf '\v\v'
 
 
     [[ -z $DNSMASQ ]] && Msg 'dnsmasq not found!' 1
     [[ ! -x $DNSMASQ ]] && Msg "Dnsmasq not found" 1
-    printf '%-20s found!\t'  "\`dnsmasq\`"
     "${DNSMASQ}" -C "${DNSMASQ_CONFIG}" --test &
     wait
     printf '\v\v'
 
-
+    exit
     printf 'Now testing variables ... \n\n'
     for var in DNS_PORT HTTPD_PORT DNSMASQ_LOG_PORT HTTPD_LOG_PORT;
     do
@@ -334,6 +343,8 @@ Test()
         fi
         printf '%-30s%s\n' "${var}:${!var}" "${ERR:+ERR!}"
     done
+
+
 
 
 
