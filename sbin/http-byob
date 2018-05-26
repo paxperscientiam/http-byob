@@ -148,6 +148,10 @@ HTTPD()
 
 Listen()
 {
+    [[ $1 == 'help' ]] && helpful <<helpmenu
+Print the netcat loggers.
+helpmenu
+
     [[ ! "${*}" =~ ^(-D|-H)$ ]] && Msg "Accepted flags are -D and -H." 1
     case $1 in
         -D|--dns)
@@ -208,6 +212,13 @@ Listen()
 # Start
 Start()
 {
+    gate "${@}"
+    shift
+    #
+    [[ $1 == 'help' ]] && helpful <<helpmenu
+Start processes.
+helpmenu
+
     if [[ $1 == '-D' || "${#1}" -eq 0 ]]
     then
         MASQ
@@ -224,6 +235,10 @@ Start()
 # Stop
 Stop()
 {
+    [[ $1 == 'help' ]] && helpful <<helpmenu
+Stop processes.
+helpmenu
+
     isValid "${1}"
 
     if [[ "${#1}" -eq 0 ]]; then
@@ -263,6 +278,9 @@ Stop()
 
 Restart()
 {
+    [[ $1 == 'help' ]] && helpful <<helpmenu
+Restart processes.
+helpmenu
     isValid "${1}"
     :
     if [[ $1 == '-H' || "${#1}" -eq 0 ]]
@@ -299,6 +317,13 @@ Restart()
 
 Test()
 {
+    [[ $1 == 'help' ]] && helpful <<helpmenu
+Test that configuration files are syntactically correct.
+helpmenu
+
+    gate "${@}"
+    shift
+
     local ERR
     local var
 
@@ -436,21 +461,10 @@ http-byob()
 {
     case $1 in
         start)
-            gate "${@}"
-            shift
-            case $1 in
-                -D|--dnsmasq)
-                    Start -D
-                    exit
-                    ;;
-                -H|--httpd)
-                    Start -H
-                    exit
-                    ;;
-            esac
-            Start
+            Start "${@}"
             ;;
         stop)
+            [[ $2 == 'help' ]] && Stop 'help'
             gate "${@}"
             shift
             Stop "${@}"
@@ -461,8 +475,7 @@ http-byob()
             Restart "${@}"
             ;;
         test   )
-            gate test
-            Test
+            Test "${@}"
             ;;
         listen|watch)
             shift
