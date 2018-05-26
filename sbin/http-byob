@@ -254,6 +254,10 @@ Stop()
         wait
         printf 'done.\n'
     fi
+
+    if [[ $2 == '--all' ]]; then
+        pkill -f "${!proc_ref}"
+    fi
     :
 }
 
@@ -316,9 +320,12 @@ Test()
 
     [[ -z $APACHECTL ]] && Msg 'apachectl not found!' 1
     :
-    "${APACHECTL}" -f "${HTTPD_CONFIG}" -t -D DUMP_INCLUDES | awk -F "|" '{ print $1, $2}' |column -t &
+   # "${APACHECTL}" -f "${HTTPD_CONFIG}" -t -D DUMP_INCLUDES | awk '{ print $1, $2}' |column -t &
+    #printf '\n\n\n'
     wait
-    #"${APACHECTL}" -f "${HTTPD_CONFIG}" -t -D DUMP_VHOSTS | awk '{ print  $3 }' &
+    :
+
+    "${APACHECTL}" -f "${HTTPD_CONFIG}" -S # | awk '{ print  $2 }' &
     wait
     printf '\v\v'
     #"${APACHECTL}" -f "${HTTPD_CONFIG}" -S &
@@ -343,12 +350,6 @@ Test()
         fi
         printf '%-30s%s\n' "${var}:${!var}" "${ERR:+ERR!}"
     done
-
-
-
-
-
-
 #         printf 'DNS_PORT
 #     [[ $HTTPD_PORT -eq 0 ]] && Msg "HTTPD_PORT not properly defined! $HTTPD_PORT"
 
@@ -357,6 +358,11 @@ Test()
 
 
 Status() {
+    [[ $1 == 'help' ]] && helpful <<helpmenu
+Dislay the status of various processes.
+helpmenu
+
+
     local pid
     tput sgr0 # turn off text attributes
     #tput clear # clear stuff away
@@ -381,6 +387,18 @@ Status() {
     ) &
     wait
 }
+
+
+helpful()
+{
+    local helpStatement
+
+    read -r helpStatement
+    echo "${helpStatement}"
+    Msg 'end' 0
+}
+
+
 
 entry(){
     if [[ ${BASH_SOURCE[0]} != "${0}" ]]; then
@@ -454,11 +472,16 @@ http-byob()
             Clean
             ;;
         status)
-            Status
+            shift
+            Status "${@}"
             ;;
         check)
             shift
             check "${1}"
+            ;;
+        help)
+            shift
+            eval "${0}" "${1}" help
             ;;
         alien)
             check -H
