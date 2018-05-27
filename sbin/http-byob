@@ -252,8 +252,7 @@ Stop()
     [[ $2 == 'help' ]] && helpful <<helpmenu
 Stop processes.
 helpmenu
-    gate "${@}"
-    shift
+    gate "${@}"; shift
 
     isValid "${1}"
 
@@ -298,8 +297,7 @@ Restart()
 Restart processes.
 helpmenu
 
-    gate "${@}"
-    shift
+    gate "${@}"; shift
 
 
     isValid "${1}"
@@ -342,8 +340,7 @@ Test()
 Test that configuration files are syntactically correct.
 helpmenu
 
-    gate "${@}"
-    shift
+    gate "${@}"; shift
 
     local ERR
     local var
@@ -403,9 +400,10 @@ helpmenu
 
 
 Status() {
-    [[ $1 == 'help' ]] && helpful <<helpmenu
+    [[ $2 == 'help' ]] && helpful <<helpmenu
 Dislay the status of various processes.
 helpmenu
+    shift
 
 
     local pid
@@ -498,7 +496,6 @@ http-byob()
             Clean "${@}"
             ;;
         status)
-            shift
             Status "${@}"
             ;;
         check)
