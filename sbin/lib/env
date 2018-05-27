@@ -10,8 +10,8 @@ HTTPD_USER=$(logname)
 declare -i DNS_PORT=53
 declare -xi HTTPD_PORT=80
 
-declare -i DNSMASQ_LOG_PORT=9005
-declare -i HTTPD_LOG_PORT=9000
+declare -xi DNSMASQ_LOG_PORT=9005
+declare -xi HTTPD_LOG_PORT=9000
 
 declare -xr HTTPD_VHOST_CUSTOM_LOG=/dev/null
 declare -xr HTTPD_VHOST_ERROR_LOG=/dev/null
@@ -19,6 +19,7 @@ declare -xr HTTPD_VHOST_ERROR_LOG=/dev/null
 
 declare -xr HTTPD_SERVER_NAME="localhost"
 
+declare -xr HOSTNAME="${HOSTNAME}"
 
 # will only override what is allowed
 source http_byob.cfg >/dev/null 2>&1

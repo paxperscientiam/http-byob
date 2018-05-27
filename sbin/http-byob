@@ -8,16 +8,18 @@ Clean() {
     [[ $2 == 'help' ]] && helpful <<helpmenu
 Clean stuff.
 helpmenu
-
+    shift
 
     if [[ $1 == '-H' || "${#1}" -eq 0 ]]
     then
         rm "${HTTPD_PID}" >/dev/null 2>&1
+        printf '%s\n' "Removed httpd PID file."
     fi
     #
     if [[ $1 == '-D' || "${#1}" -eq 0 ]]
     then
         rm "${DNSMASQ_PID}" >/dev/null 2>&1
+        printf '%s\n' "Removed dnsmasq PID file."
     fi
     #
     killall nc >/dev/null 2>&1
@@ -29,6 +31,7 @@ helpmenu
 :
 Destroy() {
     #    tput clear
+    killall nc
     :
 }
 trap Destroy SIGINT SIGQUIT
@@ -74,11 +77,12 @@ check() {
 isValid()
 {
     [[ ! "${*}" =~ ^(-D|-H|^$)$ ]] && Msg "Accepted flags are -D and -H." 1
+    return 0
 }
 :
 MASQ()
 {
-    echo "${@}";exit
+    echo "$@";exit
     # maybe use a virtual file resolver?
 
     # Note: dnsmasq is configured NOT to read config file
@@ -133,16 +137,17 @@ HTTPD()
     :
     if ! check -H >/dev/null 2>&1
     then
-        while IFS= read -r line; do
-            printf '%s\n' "$line" | nc "${HOSTNAME}" "${HTTPD_LOG_PORT}"
-        done < <(
-            "${APACHECTL}" \
-                -f "${HTTPD_CONFIG}" \
-                -e info \
-                -DFOREGROUND \
-                -k start 2>&1
-        ) &
+            while IFS= read -r line; do
+                printf '%s\n' "$line" | nc "${HOSTNAME}" "${HTTPD_LOG_PORT}"
+            done < <(
+                "${APACHECTL}" \
+                    -f "${HTTPD_CONFIG}" \
+                    -e info \
+                    -DFOREGROUND \
+                    -k start 2>&1
+        )
         disown %1
+
         printf '%s\n' $'Starting `httpd`. '
     else
         check -H
@@ -170,10 +175,10 @@ helpmenu
             nc -k -l 9005
             wait
             # check if dnsmasq is using that port
-         #    if ! lsof -n -iTCP:"${DNS_PORT}" | grep dnsmasq >/dev/null 2>&1
-#             then
-#                 printf '%s' "Waiting for dnsmasq ... "
-#             fi
+            #    if ! lsof -n -iTCP:"${DNS_PORT}" | grep dnsmasq >/dev/null 2>&1
+            #             then
+            #                 printf '%s' "Waiting for dnsmasq ... "
+            #             fi
 
             # if it is not using it, wait for it
             (
@@ -241,7 +246,7 @@ helpmenu
     :
     if [[ $1 == '-H' || "${#1}" -eq 0 ]]
     then
-        HTTPD
+        HTTPD "${@}"
     fi
 }
 
@@ -253,8 +258,8 @@ Stop()
 Stop processes.
 helpmenu
     gate "${@}"; shift
-
     isValid "${1}"
+    echo $?;exit
 
     if [[ "${#1}" -eq 0 ]]; then
         for i in D H
@@ -280,7 +285,7 @@ helpmenu
     if check "${1}" >/dev/null 2>&1
     then
         pkill -TERM -F "${!pid_file_ref}" >/dev/null 2>&1 &
-        printf 'Stopping %s ... ' "${!proc_ref}"
+        printf 'Stopping %s () ... ' "${!proc_ref}"
         wait
         printf 'done.\n'
     fi
@@ -347,11 +352,11 @@ helpmenu
 
 
 
-   #  if lsof -n -iTCP:"${HTTPD_PORT}" | awk '{print $1,$3}' | column -t
-#     then
-#         printf 'Port %s is occupied.\n' "${HTTPD_PORT}"
-#     fi
-#     printf '\v\v'
+    #  if lsof -n -iTCP:"${HTTPD_PORT}" | awk '{print $1,$3}' | column -t
+    #     then
+    #         printf 'Port %s is occupied.\n' "${HTTPD_PORT}"
+    #     fi
+    #     printf '\v\v'
 
 
     if ! source './sbin/lib/env' >/dev/null 2>&1
@@ -363,7 +368,7 @@ helpmenu
 
     [[ -z $APACHECTL ]] && Msg 'apachectl not found!' 1
     :
-   # "${APACHECTL}" -f "${HTTPD_CONFIG}" -t -D DUMP_INCLUDES | awk '{ print $1, $2}' |column -t &
+    # "${APACHECTL}" -f "${HTTPD_CONFIG}" -t -D DUMP_INCLUDES | awk '{ print $1, $2}' |column -t &
     #printf '\n\n\n'
     wait
     :
@@ -393,8 +398,8 @@ helpmenu
         fi
         printf '%-30s%s\n' "${var}:${!var}" "${ERR:+ERR!}"
     done
-#         printf 'DNS_PORT
-#     [[ $HTTPD_PORT -eq 0 ]] && Msg "HTTPD_PORT not properly defined! $HTTPD_PORT"
+    #         printf 'DNS_PORT
+    #     [[ $HTTPD_PORT -eq 0 ]] && Msg "HTTPD_PORT not properly defined! $HTTPD_PORT"
 
 }
 
@@ -446,8 +451,8 @@ entry(){
     if [[ ${BASH_SOURCE[0]} != "${0}" ]]; then
         unset -f http-byob
         if [[ "${*}" =~ '--activate' ]]; then
-        bash --rcfile <(read -r httpbyob_shell < \
-                             <(printf '%s' "export PS1=\"( BYOB ) ${PS1}\" ;\
+            bash --rcfile <(read -r httpbyob_shell < \
+                                 <(printf '%s' "export PS1=\"( BYOB ) ${PS1}\" ;\
                                           alias sudo='sudo ';\
                                           unset PROMPT_COMMAND;\
                                           alias status=\"sbin/http-byob status\";\
@@ -458,8 +463,8 @@ entry(){
                                           alias listen=\"sbin/http-byob listen \";\
                                           set +o history;\
                                           "); printf '%s'  "${httpbyob_shell}") -i
-        return
-    fi
+            return
+        fi
         printf '%s\n' "\`http-byob\` is not meant to be sourced!"
     elif [[ "${BASH_SOURCE[0]}" == 'sbin/http-byob' ]]
     then
