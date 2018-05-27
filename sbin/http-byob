@@ -78,6 +78,7 @@ isValid()
 :
 MASQ()
 {
+    echo "${@}";exit
     # maybe use a virtual file resolver?
 
     # Note: dnsmasq is configured NOT to read config file
@@ -156,7 +157,7 @@ Listen()
 Stream netcat logs.
 
 EXAMPLE:
- $ sbin/http-byob listen -H
+ $ sbin/http-byob listen -H  # Stream `httpd` logs
 
 helpmenu
 
@@ -226,18 +227,16 @@ Start()
     [[ $2 == 'help' ]] && helpful <<helpmenu
 Start processes.
 
-
+EXAMPLE:
+ $ sbin/http-byob start     # launch \`dnsmasq\` and \`httpd\`
+ $ sbin/http-body start -H  # launch \`httpd\`
 helpmenu
-    echo "${@}"
-    gate "${@}"
-    echo "${@}"
-    shift
-    echo "${@}"
-    exit
+
+    gate "${@}"; shift
 
     if [[ $1 == '-D' || "${#1}" -eq 0 ]]
     then
-        MASQ
+        MASQ "${@}"
     fi
     :
     if [[ $1 == '-H' || "${#1}" -eq 0 ]]
@@ -508,9 +507,11 @@ http-byob()
             ;;
         help)
             shift
+            [[ "${#1}" -eq 0 ]] && exit
             eval "${0}" "${1}" help
             ;;
         alien)
+            compgen -A function ;exit
             check -H
             echo $?
             exit

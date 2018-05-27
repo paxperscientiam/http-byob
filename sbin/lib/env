@@ -1,4 +1,5 @@
 # -*- mode:shell-script -*-
+[[ "${0}" != 'sbin/http-byob' ]] && printf '%s\n' "Don't do that." && exit 1
 export HTTPD_USER
 HTTPD_USER=$(logname)
 
