@@ -5,6 +5,11 @@ unset CDPATH
 #set -x
 :
 Clean() {
+    [[ $2 == 'help' ]] && helpful <<helpmenu
+Clean stuff.
+helpmenu
+
+
     if [[ $1 == '-H' || "${#1}" -eq 0 ]]
     then
         rm "${HTTPD_PID}" >/dev/null 2>&1
@@ -33,7 +38,6 @@ Msg() {
     [[ "${#2}" -gt 0 ]] && exit "${2}"
     return 0
 }
-trap Msg EXIT
 #################
 :
 # permission check
@@ -148,9 +152,16 @@ HTTPD()
 
 Listen()
 {
-    [[ $1 == 'help' ]] && helpful <<helpmenu
-Print the netcat loggers.
+    [[ $2 == 'help' ]] && helpful <<'helpmenu'
+Stream netcat logs.
+
+EXAMPLE:
+ $ sbin/http-byob listen -H
+
 helpmenu
+
+    shift
+
 
     [[ ! "${*}" =~ ^(-D|-H)$ ]] && Msg "Accepted flags are -D and -H." 1
     case $1 in
@@ -212,12 +223,17 @@ helpmenu
 # Start
 Start()
 {
-    gate "${@}"
-    shift
-    #
-    [[ $1 == 'help' ]] && helpful <<helpmenu
+    [[ $2 == 'help' ]] && helpful <<helpmenu
 Start processes.
+
+
 helpmenu
+    echo "${@}"
+    gate "${@}"
+    echo "${@}"
+    shift
+    echo "${@}"
+    exit
 
     if [[ $1 == '-D' || "${#1}" -eq 0 ]]
     then
@@ -228,16 +244,17 @@ helpmenu
     then
         HTTPD
     fi
-    exit
 }
 
 #
 # Stop
 Stop()
 {
-    [[ $1 == 'help' ]] && helpful <<helpmenu
+    [[ $2 == 'help' ]] && helpful <<helpmenu
 Stop processes.
 helpmenu
+    gate "${@}"
+    shift
 
     isValid "${1}"
 
@@ -253,7 +270,7 @@ helpmenu
             wait
             printf 'done.\n'
         done
-        exit
+        return
     fi
 
 
@@ -278,9 +295,14 @@ helpmenu
 
 Restart()
 {
-    [[ $1 == 'help' ]] && helpful <<helpmenu
+    [[ $2 == 'help' ]] && helpful <<helpmenu
 Restart processes.
 helpmenu
+
+    gate "${@}"
+    shift
+
+
     isValid "${1}"
     :
     if [[ $1 == '-H' || "${#1}" -eq 0 ]]
@@ -317,7 +339,7 @@ helpmenu
 
 Test()
 {
-    [[ $1 == 'help' ]] && helpful <<helpmenu
+    [[ $2 == 'help' ]] && helpful <<helpmenu
 Test that configuration files are syntactically correct.
 helpmenu
 
@@ -378,7 +400,6 @@ helpmenu
 #         printf 'DNS_PORT
 #     [[ $HTTPD_PORT -eq 0 ]] && Msg "HTTPD_PORT not properly defined! $HTTPD_PORT"
 
-
 }
 
 
@@ -416,11 +437,10 @@ helpmenu
 
 helpful()
 {
-    local helpStatement
+    read -r -d '' helpStatement
 
-    read -r helpStatement
-    echo "${helpStatement}"
-    Msg 'end' 0
+    printf 'HELP:\n %s\n' "${helpStatement}"
+    exit 0
 }
 
 
@@ -464,25 +484,19 @@ http-byob()
             Start "${@}"
             ;;
         stop)
-            [[ $2 == 'help' ]] && Stop 'help'
-            gate "${@}"
-            shift
             Stop "${@}"
             ;;
         restart)
-            gate "${@}"
-            shift
             Restart "${@}"
             ;;
-        test   )
+        test)
             Test "${@}"
             ;;
         listen|watch)
-            shift
             Listen "${@}"
             ;;
-        clean  )
-            Clean
+        clean)
+            Clean "${@}"
             ;;
         status)
             shift
