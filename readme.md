@@ -32,7 +32,7 @@ In order to actually watch the logs, do one of the following:
 
 If by some miracle you are able to get this to work, this repo includes an example site that you load in your browser:
 
-`www.example.local.dev`
+`www.example.org.lan`
 
 
 This assumes a directory structure like this (relative to repo):
