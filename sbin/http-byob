@@ -34,7 +34,7 @@ helpmenu
 }
 :
 Destroy() {
-    #    tput clear
+    tput rmcup
     killall nc
     :
 }
@@ -421,8 +421,10 @@ Dislay the status of various processes.
 helpmenu
     shift
 
-
     local pid
+
+    tput smcup
+
     tput sgr0 # turn off text attributes
     #tput clear # clear stuff away
     ps -o "ppid,pid,etime,user,comm" | head -n 1 | column -t
@@ -445,6 +447,8 @@ helpmenu
         yes
     ) &
     wait
+
+    tput rmcup
 }
 
 
