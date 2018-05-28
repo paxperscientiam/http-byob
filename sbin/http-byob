@@ -12,14 +12,18 @@ helpmenu
 
     if [[ $1 == '-H' || "${#1}" -eq 0 ]]
     then
-        rm "${HTTPD_PID}" >/dev/null 2>&1
-        printf '%s\n' "Removed httpd PID file."
+        if rm "${HTTPD_PID}" >/dev/null 2>&1
+        then
+            printf '%s\n' "Removed httpd PID file."
+        fi
     fi
     #
     if [[ $1 == '-D' || "${#1}" -eq 0 ]]
     then
-        rm "${DNSMASQ_PID}" >/dev/null 2>&1
-        printf '%s\n' "Removed dnsmasq PID file."
+        if rm "${DNSMASQ_PID}" >/dev/null 2>&1
+        then
+           printf '%s\n' "Removed dnsmasq PID file."
+        fi
     fi
     #
     killall nc >/dev/null 2>&1
@@ -82,7 +86,6 @@ isValid()
 :
 MASQ()
 {
-    echo "$@";exit
     # maybe use a virtual file resolver?
 
     # Note: dnsmasq is configured NOT to read config file
@@ -145,7 +148,7 @@ HTTPD()
                     -e info \
                     -DFOREGROUND \
                     -k start 2>&1
-        )
+        ) &
         disown %1
 
         printf '%s\n' $'Starting `httpd`. '
@@ -259,7 +262,6 @@ Stop processes.
 helpmenu
     gate "${@}"; shift
     isValid "${1}"
-    echo $?;exit
 
     if [[ "${#1}" -eq 0 ]]; then
         for i in D H
@@ -273,9 +275,9 @@ helpmenu
             wait
             printf 'done.\n'
         done
+        printf "complete\\n"
         return
     fi
-
 
     [[ "${#1}" -gt 0 ]] && \
         local Q; Q="${1#\-}" && \
@@ -289,6 +291,8 @@ helpmenu
         wait
         printf 'done.\n'
     fi
+
+
 
     if [[ $2 == '--all' ]]; then
         pkill -f "${!proc_ref}"
@@ -498,6 +502,7 @@ http-byob()
             Listen "${@}"
             ;;
         clean)
+            Stop "${@}"
             Clean "${@}"
             ;;
         status)
