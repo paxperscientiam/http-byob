@@ -169,9 +169,9 @@ EXAMPLE:
  $ sbin/http-byob listen -H  # Stream `httpd` logs
 
 helpmenu
-
     shift
 
+    tput smcup
 
     [[ ! "${*}" =~ ^(-D|-H)$ ]] && Msg "Accepted flags are -D and -H." 1
     case $1 in
@@ -228,6 +228,9 @@ helpmenu
             Msg "Logger closed." 103
             ;;
     esac
+
+    tput rmcup
+
 }
 
 # Start
@@ -426,7 +429,6 @@ helpmenu
     tput smcup
 
     tput sgr0 # turn off text attributes
-    #tput clear # clear stuff away
     ps -o "ppid,pid,etime,user,comm" | head -n 1 | column -t
 
     while IFS= read -r line; do
