@@ -64,6 +64,7 @@ declare -xr HTTPD_CONFIG="${HTTPD_ROOT}/conf/httpd.conf"
 declare -xr DNSMASQ_CONFIG="${HTTPD_ROOT}/etc/dnsmasq.conf"
 
 
+export PHPRC="${HTTPD_ROOT}/etc/php72/php.ini"
 
 
 declare -A D
