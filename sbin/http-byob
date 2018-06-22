@@ -382,16 +382,14 @@ helpmenu
 
     [[ -z $APACHECTL ]] && Msg 'apachectl not found!' 1
     :
-    # "${APACHECTL}" -f "${HTTPD_CONFIG}" -t -D DUMP_INCLUDES | awk '{ print $1, $2}' |column -t &
-    #printf '\n\n\n'
-    wait
-    :
+    # alias list
+    printf '%s\n' "Server alias list:"
+    while IFS='' read -r line; do
+        if [[ $line =~ alias*(.+) ]]; then
+            printf '%s\n' "${BASH_REMATCH[1]}"
+        fi
+    done < <("${APACHECTL}" -f "${HTTPD_CONFIG}" -S)
 
-    "${APACHECTL}" -f "${HTTPD_CONFIG}" -S # | awk '{ print  $2 }' &
-    wait
-    printf '\v\v'
-    #"${APACHECTL}" -f "${HTTPD_CONFIG}" -S &
-    wait
     printf '\v\v'
 
 
