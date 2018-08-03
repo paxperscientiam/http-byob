@@ -84,6 +84,11 @@ isValid()
     [[ ! "${*}" =~ ^(-D|-H|^$)$ ]] && Msg "Accepted flags are -D and -H." 1
     return 0
 }
+title()
+{
+    echo -ne "\033]0;"$*"\007"
+}
+ ● or
 :
 MASQ()
 {
@@ -421,6 +426,8 @@ Status() {
 Dislay the status of various processes.
 helpmenu
     shift
+    title status
+
 
     local pid
 
