@@ -33,10 +33,23 @@ helpmenu
     printf '%s\n' "Done cleaning."
 }
 :
+title ()
+{
+    echo -ne "\\033]0;$*\\007"
+}
+
+End() {
+    :
+    title http-byob
+    echo ""
+}
+trap End EXIT
+:
 Destroy() {
     tput rmcup
     killall nc
     :
+    title http-byob
 }
 trap Destroy SIGINT SIGQUIT
 :
@@ -49,8 +62,9 @@ Msg() {
 :
 # permission check
 gate() {
-    [[ $UID -eq 0 ]] || exec sudo "$0" "${@}"
+    [[ $UID -eq 0 ]] || exec sudo ./sbin/http-byob "${@}"
 }
+
 :
 check() {
     isValid "${1}"
@@ -73,6 +87,7 @@ check() {
             return 1
         else
             printf 'The PID file exists and corresponds to a valid process (%s)\n' "${pid}"
+            title existing process
             return 0
         fi
     fi
@@ -88,7 +103,6 @@ title()
 {
     echo -ne "\033]0;"$*"\007"
 }
- ● or
 :
 MASQ()
 {
@@ -109,6 +123,7 @@ MASQ()
     :
     if ! check -D >/dev/null 2>&1
     then
+        title launching dnsmasq
         while IFS= read -r line; do
             printf '%s\n' "$line" | nc "${HOSTNAME}" "${DNSMASQ_LOG_PORT}"
         done < <(
@@ -136,6 +151,8 @@ MASQ()
         check -D
         exit 100
     fi
+
+    title exiting
 
 }
 
@@ -175,6 +192,8 @@ EXAMPLE:
 
 helpmenu
     shift
+
+    title listening
 
     tput smcup
 
@@ -250,6 +269,8 @@ EXAMPLE:
 helpmenu
 
     gate "${@}"; shift
+
+
 
     if [[ $1 == '-D' || "${#1}" -eq 0 ]]
     then
@@ -369,7 +390,7 @@ helpmenu
     local ERR
     local var
 
-
+    title Testing ...
 
     #  if lsof -n -iTCP:"${HTTPD_PORT}" | awk '{print $1,$3}' | column -t
     #     then
