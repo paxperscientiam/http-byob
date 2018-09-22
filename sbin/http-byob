@@ -22,7 +22,7 @@ helpmenu
     then
         if rm "${DNSMASQ_PID}" >/dev/null 2>&1
         then
-           printf '%s\n' "Removed dnsmasq PID file."
+            printf '%s\n' "Removed dnsmasq PID file."
         fi
     fi
     #
@@ -62,7 +62,7 @@ Msg() {
 :
 # permission check
 gate() {
-    [[ $UID -eq 0 ]] || exec sudo ./sbin/http-byob "${@}"
+    [[ $UID -eq 0 ]] || exec sudo sbin/http-byob "${@}"
 }
 
 :
@@ -151,11 +151,9 @@ MASQ()
         check -D
         exit 100
     fi
-
     title exiting
-
 }
-
+#
 HTTPD()
 {
     local pid
@@ -163,14 +161,14 @@ HTTPD()
     :
     if ! check -H >/dev/null 2>&1
     then
-            while IFS= read -r line; do
-                printf '%s\n' "$line" | nc "${HOSTNAME}" "${HTTPD_LOG_PORT}"
-            done < <(
-                "${APACHECTL}" \
-                    -f "${HTTPD_CONFIG}" \
-                    -e info \
-                    -DFOREGROUND \
-                    -k start 2>&1
+        while IFS= read -r line; do
+            printf '%s\n' "$line" | nc "${HOSTNAME}" "${HTTPD_LOG_PORT}"
+        done < <(
+            "${APACHECTL}" \
+                -f "${HTTPD_CONFIG}" \
+                -e info \
+                -DFOREGROUND \
+                -k start 2>&1
         ) &
         disown %1
 
@@ -554,7 +552,7 @@ http-byob()
         help)
             shift
             [[ "${#1}" -eq 0 ]] && exit
-            eval "${0}" "${1}" help
+            eval sbin/http-byob "${1}" help
             ;;
         alien)
             compgen -A function ;exit
@@ -563,7 +561,7 @@ http-byob()
             exit
             ;;
         *)
-            Msg "Unknown option: try 'Start', 'Stop', 'Restart' or 'Test'" 1
+            Msg "Unknown option: try 'start', 'stop', 'restart', 'test', 'listen', 'clean', 'help'" 1
             ;;
     esac
 }
