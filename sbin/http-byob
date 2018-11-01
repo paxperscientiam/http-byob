@@ -33,6 +33,27 @@ helpmenu
     printf '%s\n' "Done cleaning."
 }
 :
+_D(){
+    echo "SHIT"
+    dnsmasq \
+        --log-queries \
+        --log-facility=- \
+        --log-async=15 \
+        --stop-dns-rebind \
+        --bind-interfaces \
+        --user="${HTTPD_USER}" \
+        --port=53 \
+        --local-service \
+		    --server=/lan/127.0.0.1 \
+        --address=/lan/127.0.0.1 \
+        --pid-file="${DNSMASQ_PID}" \
+        --cache-size=0 \
+        --no-resolv \
+        --no-hosts \
+        --strict-order \
+        --conf-file="${DNSMASQ_CONFIG}" 2>&1
+}
+
 title ()
 {
     echo -ne "\\033]0;$*\\007"
@@ -77,7 +98,7 @@ check() {
 
     if [[ ! -r "${!pid_file_ref}" ]]
     then
-        printf '%s\n' "PID file not found!:1"
+        printf '%s\n' "PID file not found!"
         return 1
     else
         pid=$(<"${!pid_file_ref}")
@@ -106,6 +127,8 @@ title()
 :
 MASQ()
 {
+    #    echoipdns lan
+    #   return
     # maybe use a virtual file resolver?
 
     # Note: dnsmasq is configured NOT to read config file
@@ -121,31 +144,18 @@ MASQ()
 
     [[ ! -x $DNSMASQ ]] && Msg "Dnsmasq not found" 1
     :
+
     if ! check -D >/dev/null 2>&1
     then
         title launching dnsmasq
-        while IFS= read -r line; do
-            printf '%s\n' "$line" | nc "${HOSTNAME}" "${DNSMASQ_LOG_PORT}"
-        done < <(
-            "${DNSMASQ}" \
-                --log-queries \
-                --log-facility=- \
-                --log-async=15 \
-                --stop-dns-rebind \
-                --bind-interfaces \
-                --user="${HTTPD_USER}" \
-                --port="${DNS_PORT}" \
-                --local-service \
-		            --server=/lan/127.0.0.1 \
-                --address=/lan/127.0.0.1 \
-                --pid-file="${DNSMASQ_PID}" \
-                --cache-size=0 \
-                --no-resolv \
-                --no-hosts \
-                --strict-order \
-                --conf-file="${DNSMASQ_CONFIG}" 2>&1
-        ) &
-        disown %1
+        _D
+        # while IFS= read -r line; do
+        #     printf '%s\n' "$line" | nc "${HOSTNAME}" "${DNSMASQ_LOG_PORT}"
+        # done < <(
+        #     _D
+        # )
+        # #&
+        # #disown %1
         printf '%s\n' $'Starting `dnsmasq`.'
     else
         check -D
@@ -314,18 +324,25 @@ helpmenu
         return
     fi
 
+
     [[ "${#1}" -gt 0 ]] && \
         local Q; Q="${1#\-}" && \
         local pid_file_ref; pid_file_ref="$Q[pid]" && \
         local proc_ref; proc_ref="$Q[proc]"
 
+    if [[ -f "${!pid_file_ref}" ]]; then
+        local pid="$(<"${!pid_file_ref}")"
+    else
+        printf $'Found no reference to %s\n' "${!proc_ref}"
+        return
+    fi
 
     IFS=: read -r stopReply state < <(check "${1}")
 
     if [[ "$state" -eq 0 ]]
     then
         pkill -TERM -F "${!pid_file_ref}" >/dev/null 2>&1 &
-        printf 'Stopping %s () ... ' "${!proc_ref}"
+        printf 'Stopping %s (%s) ... ' "${!proc_ref}" "${pid}"
         wait
         printf 'done.\n'
     else
@@ -559,6 +576,9 @@ http-byob()
             check -H
             echo $?
             exit
+            ;;
+        __)
+            __
             ;;
         *)
             Msg "Unknown option: try 'start', 'stop', 'restart', 'test', 'listen', 'clean', 'help'" 1

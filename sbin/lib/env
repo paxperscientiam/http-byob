@@ -68,6 +68,7 @@ export PHPRC="${HTTPD_ROOT}/etc/php72/php.ini"
 
 
 declare -A D
+export D
 D[proc]='dnsmasq'
 D[port]="${DNS_PORT}"
 D[pid]="${DNSMASQ_PID}"
