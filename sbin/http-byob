@@ -524,7 +524,7 @@ entry(){
             return
         fi
         printf '%s\n' "\`http-byob\` is not meant to be sourced!"
-    elif [[ "${BASH_SOURCE[0]}" == 'sbin/http-byob' ]]
+    elif [[ "${BASH_SOURCE[0]#\.\/}" == 'sbin/http-byob' ]]
     then
         if ! source './sbin/lib/env' >/dev/null 2>&1
         then
