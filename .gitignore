@@ -10,3 +10,4 @@ var/run/
 report.txt
 done.txt
 todo.txt
+pnpm-debug.log
