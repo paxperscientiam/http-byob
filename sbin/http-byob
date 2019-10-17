@@ -34,7 +34,6 @@ helpmenu
 }
 :
 _D(){
-    echo "SHIT"
     dnsmasq \
         --log-queries \
         --log-facility=- \
@@ -171,18 +170,23 @@ HTTPD()
     :
     if ! check -H >/dev/null 2>&1
     then
-        while IFS= read -r line; do
-            printf '%s\n' "$line" | nc "${HOSTNAME}" "${HTTPD_LOG_PORT}"
-        done < <(
-            "${APACHECTL}" \
-                -f "${HTTPD_CONFIG}" \
-                -e info \
-                -DFOREGROUND \
-                -k start 2>&1
-        ) &
-        disown %1
+        # while IFS= read -r line; do
+        #     printf '%s\n' "$line" | nc "${HOSTNAME}" "${HTTPD_LOG_PORT}"
+        # done < <(
+        #     "${APACHECTL}" \
+            #         -f "${HTTPD_CONFIG}" \
+            #         -e info \
+            #         -DFOREGROUND \
+            #         -k start 2>&1
+        # ) &
+        "${APACHECTL}" \
+            -f "${HTTPD_CONFIG}" \
+            -e debug \
+            -k start
+#        disown %1
 
         printf '%s\n' $'Starting `httpd`. '
+
     else
         check -H
         exit 100
