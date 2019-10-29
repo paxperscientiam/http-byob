@@ -28,13 +28,14 @@ source http_byob.cfg >/dev/null 2>&1
 
 ########################
 # FIND EXECUTABLES
-declare -r HTTPD_TMP=$(which httpd)
+declare -r HTTPD_TMP=$(command -v httpd)
+
 declare HTTPD="${HTTPD:=${HTTPD_TMP}}"
 
-declare -r DNSMASQ_TMP=$(which dnsmasq)
+declare -r DNSMASQ_TMP=$(command -v dnsmasq)
 declare DNSMASQ="${DNSMASQ:=${DNSMASQ_TMP}}"
 
-declare -r APACHECTL_TMP=$(which apachectl)
+declare -r APACHECTL_TMP=$(command -v apachectl)
 declare APACHECTL="${APACHECTL:=${APACHECTL_TMP}}"
 
 [[ ! -x "${HTTPD}" ]] && HTTPD=''
@@ -45,13 +46,13 @@ export eval exe=("${APACHECTL} ${DNSMASQ}")
 
 
 #
-declare -xr HTTP_SERVER_ROOT=$(dirname $(dirname $HTTPD))
+declare -xr HTTP_SERVER_ROOT=$(dirname "$(dirname $HTTPD)")
 declare -xr HTTPD_ROOT=$(pwd)
 
 
 # Apache says it NOT include trailing slash
 declare -xr HTTPD_DOCUMENT_ROOT="${HTTPD_ROOT}/www"
-declare -xr PHP_ROOT="${HTTPD_ROOT}/etc/php72/"
+declare -xr PHP_ROOT="${HTTPD_ROOT}/etc/php73/"
 declare -xr DNSMASQ_PID="${HTTPD_ROOT}/var/run/dnsmasq.pid"
 declare -xr HTTPD_PID="${HTTPD_ROOT}/var/run/httpd.pid"
 :
@@ -64,7 +65,7 @@ declare -xr HTTPD_CONFIG="${HTTPD_ROOT}/conf/httpd.conf"
 declare -xr DNSMASQ_CONFIG="${HTTPD_ROOT}/etc/dnsmasq.conf"
 
 
-export PHPRC="${HTTPD_ROOT}/etc/php72/php.ini"
+export PHPRC="${HTTPD_ROOT}/etc/php73/php.ini"
 
 
 declare -A D

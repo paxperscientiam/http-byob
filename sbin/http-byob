@@ -534,6 +534,7 @@ entry(){
         then
             Msg "Unable to source environment variables!" 1
         fi
+
         [[ ! "${1}" == 'Test' ]] && http-byob "${@}"
     else
         printf '%s\n' "\`http-byob\` must be invoked from the container root -- \"sbin/http-byob\". Also, avoid using aliases!"
