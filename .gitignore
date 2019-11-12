@@ -11,3 +11,4 @@ report.txt
 done.txt
 todo.txt
 pnpm-debug.log
+node_modules

@@ -4,11 +4,5 @@
   "repository": "git@github.com:paxperscientiam/http-byob.git",
   "author": "Chris <chrisdavidramos@gmail.com>",
   "license": "GPL-3.0-or-later",
-  "private": true,
-  "dependencies": {
-    "bootstrap": "4.2.1",
-    "lodash": "^4.17.11",
-    "openseadragon": "^2.4.0",
-    "ramda": "^0.26.1"
-  }
+  "private": true
 }
