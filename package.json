@@ -1,8 +1,8 @@
 {
-  "name": "http-byob",
-  "description": "\"http-byob is my little attempt at creating a faux container for a DAMP stack.\"",
-  "repository": "git@github.com:paxperscientiam/http-byob.git",
-  "author": "Chris <chrisdavidramos@gmail.com>",
-  "license": "GPL-3.0-or-later",
-  "private": true
+    "name": "http-byob",
+    "description": "\"http-byob is my little attempt at creating a faux container for a DAMP stack.\"",
+    "repository": "git@github.com:paxperscientiam/http-byob.git",
+    "author": "Chris <chrisdavidramos@gmail.com>",
+    "license": "GPL-3.0-or-later",
+    "private": true
 }
