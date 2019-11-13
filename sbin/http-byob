@@ -422,7 +422,7 @@ helpmenu
     then
         Msg "Unable to source environment variables!" 1
     fi
-
+    exit
     [[ -z $HTTPD ]] && Msg 'httpd not found!' 1
 
     [[ -z $APACHECTL ]] && Msg 'apachectl not found!' 1

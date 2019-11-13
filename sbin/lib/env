@@ -1,11 +1,25 @@
 # -*- mode:shell-script -*-
-[[ "${0}" != 'sbin/http-byob' ]] && printf '%s\n' "Don't do that." && exit 1
+#[[ "${0}" != 'sbin/http-byob' ]] && printf '%s\n' "Don't do that." && exit 1
+
+declare -i ERECT
+declare INSTALL_ROOT
+
+# install location
+if [[ "${1}" == '--erect' ]]; then
+    INSTALL_ROOT="${2}"
+    if [[ ! -d "${INSTALL_ROOT}" ]]; then
+        printf 'The install root %s does not exist\n\n' "${INSTALL_ROOT}"
+        exit 1
+    fi
+    HTTPD_ROOT="${INSTALL_ROOT}/HTTP_BYOB"
+    ERECT=0 # 0 is true
+fi
+
 export HTTPD_USER
 HTTPD_USER=$(logname)
 
-
 ###############
-# DECLARATIONS
+# IO
 ###############
 declare -i DNS_PORT=53
 declare -xi HTTPD_PORT=80
@@ -22,51 +36,110 @@ declare -xr HTTPD_SERVER_NAME="localhost"
 declare -xr HOSTNAME="${HOSTNAME}"
 
 # will only override what is allowed
-source http_byob.cfg >/dev/null 2>&1
-
-
+# source http_byob.cfg >/dev/null 2>&1
 
 ########################
 # FIND EXECUTABLES
-declare -r HTTPD_TMP=$(command -v httpd)
+########################
+declare HTTPD
+if HTTPD=$(command -v httpd) >/dev/null 2>&1; then
+    printf 'Found httpd here: %s\n\n' "${HTTPD}"
+else
+    printf 'Apache httpd not found!\n\n'
+    exit 1
+fi
 
-declare HTTPD="${HTTPD:=${HTTPD_TMP}}"
+declare APACHECTL
+if APACHECTL=$(command -v apachectl) >/dev/null 2>&1; then
+    printf 'Found apachectl here: %s\n\n' "${APACHECTL}"
+else
+    printf 'apachectl httpd not found!\n\n'
+    exit 1
+fi
 
-declare -r DNSMASQ_TMP=$(command -v dnsmasq)
-declare DNSMASQ="${DNSMASQ:=${DNSMASQ_TMP}}"
+declare PHP
+if PHP=$(command -v php) >/dev/null 2>&1; then
+    printf 'Found httpd here: %s\n\n' "${PHP}"
+else
+    printf 'php not found!\n\n'
+    exit 1
+fi
 
-declare -r APACHECTL_TMP=$(command -v apachectl)
-declare APACHECTL="${APACHECTL:=${APACHECTL_TMP}}"
+declare DNSMASQ
+if DNSMASQ=$(command -v dnsmasq) >/dev/null 2>&1; then
+    printf 'Found dnsmasq here: %s\n\n' "${DNSMASQ}"
+else
+    printf 'DNSMASQ not found!\n\n'
+    exit 1
+fi
 
-[[ ! -x "${HTTPD}" ]] && HTTPD=''
-[[ ! -x "${DNSMASQ}" ]] && DNSMASQ=''
-[[ ! -x "${APACHECTL}" ]] && APACHECTL=''
-
-export eval exe=("${APACHECTL} ${DNSMASQ}")
-
-
+declare PHP_VERSION
+if ! PHP_VERSION=$(php -r "echo PHP_MAJOR_VERSION.PHP_MINOR_VERSION;") >/dev/null 2>&1; then
+    PHP_VERSION=""
+    printf 'php version is indeterminate\n\n'
+else
+    printf 'Using php%s\n\n' "${PHP_VERSION}"
+fi
 #
-declare -xr HTTP_SERVER_ROOT=$(dirname "$(dirname $HTTPD)")
-declare -xr HTTPD_ROOT=$(pwd)
 
+########################
+# DIRECTORY STRUCTURE
+########################
+
+HTTP_SERVER_ROOT=$(dirname "$(dirname "${HTTPD}")")
+declare -xr HTTP_SERVER_ROOT
+
+# use supplied build root if supplied
+HTTPD_ROOT="${HTTPD_ROOT:=$(pwd)/HTTP_BYOB}"
+declare -xr HTTPD_ROOT
 
 # Apache says it NOT include trailing slash
-declare -xr HTTPD_DOCUMENT_ROOT="${HTTPD_ROOT}/www"
-declare -xr PHP_ROOT="${HTTPD_ROOT}/etc/php73/"
-declare -xr DNSMASQ_PID="${HTTPD_ROOT}/var/run/dnsmasq.pid"
-declare -xr HTTPD_PID="${HTTPD_ROOT}/var/run/httpd.pid"
+HTTPD_DOCUMENT_ROOT="${HTTPD_ROOT}/www"
+declare -xr HTTPD_DOCUMENT_ROOT
+#
+PHP_ROOT="${HTTPD_ROOT}/etc/PHP${PHP_VERSION}/"
+declare -xr PHP_ROOT
+
+PID_ROOT="${HTTPD_ROOT}/var/run"
+declare -xr PID_ROOT
+
+CONF_ROOT="${HTTPD_ROOT}/conf"
+declare -xr CONF_ROOT
+
+LOGS_ROOT="${HTTPD_ROOT}/logs"
+declare -xr LOGS_ROOT
+
+# doesnt exist and ERECT=0, then build
+echo "${HTTPD_ROOT}"
+echo $ERECT
+if [[ ! -d "${HTTPD_ROOT}" ]]; then
+    printf 'Scaffolding ...\n\n'
+else
+     printf 'Build exists already. Aborting.\n\n'
+     exit 1
+fi
+
+if ! mkdir -p "${HTTPD_DOCUMENT_ROOT}"; then
+    exit $?
+fi
+
+mkdir -p {"${PID_ROOT}","${CONF_ROOT}","${PHP_ROOT}","${LOGS_ROOT}"}
+exit
+
+
+declare -xr DNSMASQ_PID="${PID_ROOT}/dnsmasq.pid"
+declare -xr HTTPD_PID="${PID_ROOT}/httpd.pid"
 :
 export DNS_RESOLV="${HTTPD_ROOT}/etc/resolv.conf"
 export DNS_HOSTS="${HTTPD_ROOT}/etc/hosts"
 
 
 # Configs
-declare -xr HTTPD_CONFIG="${HTTPD_ROOT}/conf/httpd.conf"
-declare -xr DNSMASQ_CONFIG="${HTTPD_ROOT}/etc/dnsmasq.conf"
+declare -xr HTTPD_CONFIG="${CONF_ROOT}/httpd.conf"
+declare -xr DNSMASQ_CONFIG="${CONF_ROOT}/dnsmasq.conf"
 
 
-export PHPRC="${HTTPD_ROOT}/etc/php73/php.ini"
-
+export PHPRC="${PHP_ROOT}/php.ini"
 
 declare -A D
 export D
@@ -81,11 +154,22 @@ H[port]="${HTTPD_PORT}"
 H[pid]="${HTTPD_PID}"
 
 
+# IF ERECTING COPY THESE
+# REPO_ROOT=$(dirname $(dirname $(dirname $0)))
+# if [[ -d "${REPO_ROOT}/icons" ]]; then
+#     # better to get from github
+#     #cp -a "${REPO_ROOT}/icons" "${HTTPD_ROOT}" &
+#     printf 'Copying icons ... '
+#     wait
+#     printf 'done.\n\n'
+# fi
 
 
+
+# echo $BASH_ARGV0
 
 # unncessary
-#PHP_CONFIG="${PHP_ROOT}/php-dev.ini"
+# PHP_CONFIG="${PHP_ROOT}/php-dev.ini"
 
 
   # The install paths have been changed to no longer violate the MacPorts mtree:
