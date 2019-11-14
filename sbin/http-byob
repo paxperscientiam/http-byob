@@ -85,6 +85,43 @@ gate() {
     [[ $UID -eq 0 ]] || exec sudo sbin/http-byob "${@}"
 }
 
+isInstalled() {
+    ########################
+    # FIND EXECUTABLES
+    ########################
+    declare HTTPD
+    if HTTPD=$(command -v httpd) >/dev/null 2>&1; then
+        printf 'Found httpd here: %s\n\n' "${HTTPD}"
+    else
+        printf 'Apache httpd not found!\n\n'
+        exit 1
+    fi
+
+    declare APACHECTL
+    if APACHECTL=$(command -v apachectl) >/dev/null 2>&1; then
+        printf 'Found apachectl here: %s\n\n' "${APACHECTL}"
+    else
+        printf 'apachectl httpd not found!\n\n'
+        exit 2
+    fi
+
+    declare PHP
+    if PHP=$(command -v php) >/dev/null 2>&1; then
+        printf 'Found httpd here: %s\n\n' "${PHP}"
+    else
+        printf 'php not found!\n\n'
+        exit 3
+    fi
+
+    declare DNSMASQ
+    if DNSMASQ=$(command -v dnsmasq) >/dev/null 2>&1; then
+        printf 'Found dnsmasq here: %s\n\n' "${DNSMASQ}"
+    else
+        printf 'DNSMASQ not found!\n\n'
+        exit 4
+    fi
+}
+
 :
 check() {
     isValid "${1}"
@@ -183,7 +220,7 @@ HTTPD()
             -f "${HTTPD_CONFIG}" \
             -e debug \
             -k start
-#        disown %1
+        #        disown %1
 
         printf '%s\n' $'Starting `httpd`. '
 
@@ -422,10 +459,9 @@ helpmenu
     then
         Msg "Unable to source environment variables!" 1
     fi
-    exit
-    [[ -z $HTTPD ]] && Msg 'httpd not found!' 1
 
-    [[ -z $APACHECTL ]] && Msg 'apachectl not found!' 1
+
+    exit
     :
     # alias list
     printf '%s\n' "Server alias list:"
@@ -507,9 +543,43 @@ helpful()
     exit 0
 }
 
+Build() {
+    if ! isInstalled ;then
+        echo shit
+    fi
 
+    INSTALL_ROOT="${1}"
+    if [[ ! -d "${INSTALL_ROOT}" ]]; then
+        printf 'The install root %s does not exist\n\n' "${INSTALL_ROOT}"
+        exit 1
+    fi
+    HTTPD_ROOT="${INSTALL_ROOT}/HTTP_BYOB"
+    ERECT=0 # 0 is true
+
+    if [[ ! -d "${HTTPD_ROOT}" ]]; then
+        printf 'Scaffolding ...\n\n'
+    else
+        printf 'Build exists already. Aborting.\n\n'
+        exit 1
+    fi
+
+    if ! source "$(dirname "${0}")/lib/env" >/dev/null 2>&1
+    then
+        Msg "Unable to source environment variables!" 1
+    fi
+
+    if ! mkdir -p "${HTTPD_DOCUMENT_ROOT}"; then
+        exit $?
+    fi
+
+    mkdir -p {"${PID_ROOT}","${CONF_ROOT}","${PHP_ROOT}","${LOGS_ROOT}"}
+
+
+}
 
 entry(){
+    [[ "${1}" == 'build' ]] && http-byob "${@}"
+
     if [[ ${BASH_SOURCE[0]} != "${0}" ]]; then
         unset -f http-byob
         if [[ "${*}" =~ '--activate' ]]; then
@@ -545,6 +615,10 @@ entry(){
 http-byob()
 {
     case $1 in
+        build)
+            shift
+            Build "${@}"
+            ;;
         start)
             Start "${@}"
             ;;

@@ -1,19 +1,19 @@
 # -*- mode:shell-script -*-
 #[[ "${0}" != 'sbin/http-byob' ]] && printf '%s\n' "Don't do that." && exit 1
 
-declare -i ERECT
-declare INSTALL_ROOT
+declare -ix ERECT
+declare -x INSTALL_ROOT
 
 # install location
-if [[ "${1}" == '--erect' ]]; then
-    INSTALL_ROOT="${2}"
-    if [[ ! -d "${INSTALL_ROOT}" ]]; then
-        printf 'The install root %s does not exist\n\n' "${INSTALL_ROOT}"
-        exit 1
-    fi
-    HTTPD_ROOT="${INSTALL_ROOT}/HTTP_BYOB"
-    ERECT=0 # 0 is true
-fi
+# if [[ "${1}" == '--erect' ]]; then
+#     INSTALL_ROOT="${2}"
+#     if [[ ! -d "${INSTALL_ROOT}" ]]; then
+#         printf 'The install root %s does not exist\n\n' "${INSTALL_ROOT}"
+#         exit 1
+#     fi
+#     HTTPD_ROOT="${INSTALL_ROOT}/HTTP_BYOB"
+#     ERECT=0 # 0 is true
+# fi
 
 export HTTPD_USER
 HTTPD_USER=$(logname)
@@ -38,40 +38,6 @@ declare -xr HOSTNAME="${HOSTNAME}"
 # will only override what is allowed
 # source http_byob.cfg >/dev/null 2>&1
 
-########################
-# FIND EXECUTABLES
-########################
-declare HTTPD
-if HTTPD=$(command -v httpd) >/dev/null 2>&1; then
-    printf 'Found httpd here: %s\n\n' "${HTTPD}"
-else
-    printf 'Apache httpd not found!\n\n'
-    exit 1
-fi
-
-declare APACHECTL
-if APACHECTL=$(command -v apachectl) >/dev/null 2>&1; then
-    printf 'Found apachectl here: %s\n\n' "${APACHECTL}"
-else
-    printf 'apachectl httpd not found!\n\n'
-    exit 1
-fi
-
-declare PHP
-if PHP=$(command -v php) >/dev/null 2>&1; then
-    printf 'Found httpd here: %s\n\n' "${PHP}"
-else
-    printf 'php not found!\n\n'
-    exit 1
-fi
-
-declare DNSMASQ
-if DNSMASQ=$(command -v dnsmasq) >/dev/null 2>&1; then
-    printf 'Found dnsmasq here: %s\n\n' "${DNSMASQ}"
-else
-    printf 'DNSMASQ not found!\n\n'
-    exit 1
-fi
 
 declare PHP_VERSION
 if ! PHP_VERSION=$(php -r "echo PHP_MAJOR_VERSION.PHP_MINOR_VERSION;") >/dev/null 2>&1; then
@@ -91,40 +57,35 @@ declare -xr HTTP_SERVER_ROOT
 
 # use supplied build root if supplied
 HTTPD_ROOT="${HTTPD_ROOT:=$(pwd)/HTTP_BYOB}"
-declare -xr HTTPD_ROOT
+declare -xr HTTPD_ROOT="${HTTPD_ROOT}"
 
 # Apache says it NOT include trailing slash
 HTTPD_DOCUMENT_ROOT="${HTTPD_ROOT}/www"
-declare -xr HTTPD_DOCUMENT_ROOT
+declare -xr HTTPD_DOCUMENT_ROOT="${HTTPD_DOCUMENT_ROOT}"
 #
 PHP_ROOT="${HTTPD_ROOT}/etc/PHP${PHP_VERSION}/"
-declare -xr PHP_ROOT
+declare -xr PHP_ROOT="${PHP_ROOT}"
 
 PID_ROOT="${HTTPD_ROOT}/var/run"
-declare -xr PID_ROOT
+declare -xr PID_ROOT="${PID_ROOT}"
 
 CONF_ROOT="${HTTPD_ROOT}/conf"
-declare -xr CONF_ROOT
+declare -xr CONF_ROOT="${CONF_ROOT}"
 
 LOGS_ROOT="${HTTPD_ROOT}/logs"
-declare -xr LOGS_ROOT
+declare -xr LOGS_ROOT="${LOGS_ROOT}"
 
 # doesnt exist and ERECT=0, then build
-echo "${HTTPD_ROOT}"
-echo $ERECT
-if [[ ! -d "${HTTPD_ROOT}" ]]; then
-    printf 'Scaffolding ...\n\n'
-else
-     printf 'Build exists already. Aborting.\n\n'
-     exit 1
-fi
+# echo "${HTTPD_ROOT}"
+# echo $ERECT
+# if [[ ! -d "${HTTPD_ROOT}" ]]; then
+#     printf 'Scaffolding ...\n\n'
+# else
+#      printf 'Build exists already. Aborting.\n\n'
+#      exit 1
+# fi
 
-if ! mkdir -p "${HTTPD_DOCUMENT_ROOT}"; then
-    exit $?
-fi
-
-mkdir -p {"${PID_ROOT}","${CONF_ROOT}","${PHP_ROOT}","${LOGS_ROOT}"}
-exit
+# mkdir -p {"${PID_ROOT}","${CONF_ROOT}","${PHP_ROOT}","${LOGS_ROOT}"}
 
 
 declare -xr DNSMASQ_PID="${PID_ROOT}/dnsmasq.pid"
