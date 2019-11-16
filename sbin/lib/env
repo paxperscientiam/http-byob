@@ -1,7 +1,6 @@
 # -*- mode:shell-script -*-
 #[[ "${0}" != 'sbin/http-byob' ]] && printf '%s\n' "Don't do that." && exit 1
 
-declare -ix ERECT
 declare -x INSTALL_ROOT
 
 # install location

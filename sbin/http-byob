@@ -4,6 +4,112 @@ shopt -s nullglob
 unset CDPATH
 #set -x
 :
+###### THE ENVIRONMENT ###########
+declare -x INSTALL_ROOT
+
+# install location
+# if [[ "${1}" == '--erect' ]]; then
+#     INSTALL_ROOT="${2}"
+#     if [[ ! -d "${INSTALL_ROOT}" ]]; then
+#         printf 'The install root %s does not exist\n\n' "${INSTALL_ROOT}"
+#         exit 1
+#     fi
+#     HTTPD_ROOT="${INSTALL_ROOT}/HTTP_BYOB"
+#     ERECT=0 # 0 is true
+# fi
+
+export HTTPD_USER
+HTTPD_USER=$(logname)
+
+###############
+# IO
+###############
+declare -i DNS_PORT=53
+declare -xi HTTPD_PORT=80
+
+declare -xi DNSMASQ_LOG_PORT=9005
+declare -xi HTTPD_LOG_PORT=9000
+
+declare -xr HTTPD_VHOST_CUSTOM_LOG=/dev/null
+declare -xr HTTPD_VHOST_ERROR_LOG=/dev/null
+
+
+declare -xr HTTPD_SERVER_NAME="localhost"
+
+declare -xr HOSTNAME="${HOSTNAME}"
+
+# will only override what is allowed
+# source http_byob.cfg >/dev/null 2>&1
+
+
+declare PHP_VERSION
+if ! PHP_VERSION=$(php -r "echo PHP_MAJOR_VERSION.PHP_MINOR_VERSION;") >/dev/null 2>&1; then
+    PHP_VERSION=""
+    printf 'php version is indeterminate\n\n'
+else
+    printf 'Using php%s\n\n' "${PHP_VERSION}"
+fi
+#
+########################
+# DIRECTORY STRUCTURE
+########################
+
+HTTP_SERVER_ROOT=$(dirname "$(dirname "${HTTPD}")")
+declare -xr HTTP_SERVER_ROOT
+
+# use supplied build root if supplied
+HTTPD_ROOT="${HTTPD_ROOT:=$(pwd)/HTTP_BYOB}"
+declare -x HTTPD_ROOT="${HTTPD_ROOT}"
+
+# Apache says it NOT include trailing slash
+HTTPD_DOCUMENT_ROOT="${HTTPD_ROOT}/www"
+declare -xr HTTPD_DOCUMENT_ROOT="${HTTPD_DOCUMENT_ROOT}"
+#
+PHP_ROOT="${HTTPD_ROOT}/etc/PHP${PHP_VERSION}/"
+declare -xr PHP_ROOT="${PHP_ROOT}"
+
+PID_ROOT="${HTTPD_ROOT}/var/run"
+declare -xr PID_ROOT="${PID_ROOT}"
+
+CONF_ROOT="${HTTPD_ROOT}/conf"
+declare -xr CONF_ROOT="${CONF_ROOT}"
+
+LOGS_ROOT="${HTTPD_ROOT}/logs"
+declare -xr LOGS_ROOT="${LOGS_ROOT}"
+
+
+
+declare -xr DNSMASQ_PID="${PID_ROOT}/dnsmasq.pid"
+declare -xr HTTPD_PID="${PID_ROOT}/httpd.pid"
+:
+export DNS_RESOLV="${HTTPD_ROOT}/etc/resolv.conf"
+export DNS_HOSTS="${HTTPD_ROOT}/etc/hosts"
+
+
+# Configs
+declare -xr HTTPD_CONFIG="${CONF_ROOT}/httpd.conf"
+declare -xr DNSMASQ_CONFIG="${CONF_ROOT}/dnsmasq.conf"
+
+
+export PHPRC="${PHP_ROOT}/php.ini"
+
+declare -A D
+export D
+D[proc]='dnsmasq'
+D[port]="${DNS_PORT}"
+D[pid]="${DNSMASQ_PID}"
+
+declare -A H
+export H
+H[proc]='httpd'
+H[port]="${HTTPD_PORT}"
+H[pid]="${HTTPD_PID}"
+
+
+##################################
+
+
+
 Clean() {
     [[ $2 == 'help' ]] && helpful <<helpmenu
 Clean stuff.
@@ -455,13 +561,6 @@ helpmenu
     #     fi
     #     printf '\v\v'
 
-
-    if ! source './sbin/lib/env' >/dev/null 2>&1
-    then
-        Msg "Unable to source environment variables!" 1
-    fi
-
-
     exit
     :
     # alias list
@@ -547,7 +646,7 @@ helpful()
 
 FetchConfigs() {
     local ROOT="${1:?}"
-    local URL_BASE='https://raw.githubusercontent.com/paxperscientiam/http-byob/master/'
+    local URL_BASE='https://raw.githubusercontent.com/paxperscientiam/http-byob/develop/'
     local FILES=(
         "conf/httpd.conf"
         "conf/extra/httpd-autoindex.conf"
@@ -589,11 +688,6 @@ Build() {
         exit 1
     fi
 
-    if ! source "$(dirname "${0}")/lib/env" >/dev/null 2>&1
-    then
-        Msg "Unable to source environment variables!" 1
-    fi
-
     if ! mkdir -p "${HTTPD_DOCUMENT_ROOT}"; then
         exit $?
     fi
@@ -629,11 +723,6 @@ entry(){
         printf '%s\n' "\`http-byob\` is not meant to be sourced!"
     elif [[ "${BASH_SOURCE[0]#\.\/}" == 'sbin/http-byob' ]]
     then
-        if ! source './sbin/lib/env' >/dev/null 2>&1
-        then
-            Msg "Unable to source environment variables!" 1
-        fi
-
         [[ ! "${1}" == 'Test' ]] && http-byob "${@}"
     else
         printf '%s\n' "\`http-byob\` must be invoked from the container root -- \"sbin/http-byob\". Also, avoid using aliases!"
