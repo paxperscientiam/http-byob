@@ -662,7 +662,7 @@ FetchConfigs() {
         # don't redownload unncessarily
         [[ -f "${ROOT}/${remote_file}" ]] && printf 'done (unchanged).\n' && continue
         (curl "${URL_BASE}/${remote_file}" >| \
-            "${ROOT}/${remote_file}" >/dev/null 2>&1) &
+             "${ROOT}/${remote_file}" >/dev/null 2>&1) &
         wait
         printf 'done.\n'
     done < <(printf '%s\n' "${FILES[@]}")
@@ -677,6 +677,13 @@ Build() {
     HTTPD_ROOT="${INSTALL_ROOT}/HTTP_BYOB"
 
     if [[ ! -d "${HTTPD_ROOT}" ]]; then
+        echo "Ready to scafffold. Continue?"
+        select yn in "Yes" "No"; do
+            case $yn in
+                Yes ) break;;
+                No ) exit 66;;
+            esac
+        done
         printf 'Scaffolding ...\n\n'
     else
         printf 'Build exists already. Aborting.\n\n'
