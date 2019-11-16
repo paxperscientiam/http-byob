@@ -190,7 +190,7 @@ Msg() {
 :
 # permission check
 gate() {
-    [[ $UID -eq 0 ]] || exec sudo sbin/http-byob "${@}"
+    [[ $UID -eq 0 ]] || exec sudo "${0}" "${@}"
 }
 
 declare -i IS_INSTALLED=1
@@ -426,16 +426,23 @@ EXAMPLE:
  $ sbin/http-body start -H  # launch \`httpd\`
 helpmenu
 
+    local _HTTPD_ROOT="${3:?}"
+    if [[ ! -d "${_HTTPD_ROOT}" ]]; then
+        printf 'The project root %s does not exist\n\n' "${_HTTPD_ROOT}"
+        exit 1
+    fi
+    HTTPD_ROOT="${_HTTPD_ROOT}"
+
     gate "${@}"; shift
 
     if [[ $1 == '-D' || "${#1}" -eq 0 ]]
     then
-        MASQ "${@}"
+        MASQ "${2}"
     fi
     :
     if [[ $1 == '-H' || "${#1}" -eq 0 ]]
     then
-        HTTPD "${@}"
+        HTTPD "${2}"
     fi
 }
 
@@ -708,33 +715,7 @@ Build() {
 }
 
 entry(){
-    [[ "${1}" == 'build' ]] && http-byob "${@}"
-
-    if [[ ${BASH_SOURCE[0]} != "${0}" ]]; then
-        unset -f http-byob
-        if [[ "${*}" =~ '--activate' ]]; then
-            bash --rcfile <(read -r httpbyob_shell < \
-                                 <(printf '%s' "export PS1=\"( BYOB ) ${PS1}\" ;\
-                                          alias sudo='sudo ';\
-                                          unset PROMPT_COMMAND;\
-                                          alias status=\"sbin/http-byob status\";\
-                                          alias start=\"sbin/http-byob start \";\
-                                          alias stop=\"sbin/http-byob stop \";\
-                                          alias restart=\"sbin/http-byob restart \";\
-                                          alias test=\"sbin/http-byob test \";\
-                                          alias listen=\"sbin/http-byob listen \";\
-                                          set +o history;\
-                                          "); printf '%s'  "${httpbyob_shell}") -i
-            return
-        fi
-        printf '%s\n' "\`http-byob\` is not meant to be sourced!"
-    elif [[ "${BASH_SOURCE[0]#\.\/}" == 'sbin/http-byob' ]]
-    then
-        [[ ! "${1}" == 'Test' ]] && http-byob "${@}"
-    else
-        printf '%s\n' "\`http-byob\` must be invoked from the container root -- \"sbin/http-byob\". Also, avoid using aliases!"
-        exit 1
-    fi
+    [[ ! "${1}" == 'Test' ]] && http-byob "${@}"
 }
 
 http-byob()
