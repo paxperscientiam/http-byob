@@ -32,6 +32,15 @@ helpmenu
     #     wait
     printf '%s\n' "Done cleaning."
 }
+err_report() {
+    echo "Error on line $1"
+}
+trap 'err_report $LINENO' ERR
+End() {
+    :
+    title 'http-byob: bye'
+}
+trap 'End' EXIT
 :
 _D(){
     dnsmasq \
@@ -57,13 +66,6 @@ title ()
 {
     echo -ne "\\033]0;$*\\007"
 }
-
-End() {
-    :
-    title http-byob
-    echo ""
-}
-trap End EXIT
 :
 Destroy() {
     tput rmcup
@@ -85,11 +87,16 @@ gate() {
     [[ $UID -eq 0 ]] || exec sudo sbin/http-byob "${@}"
 }
 
+declare -i IS_INSTALLED=1
+declare HTTPD
+declare APACHECTL
+declare PHP
+declare DNSMASQ
 isInstalled() {
+    [ "${IS_INSTALLED}" -eq 0 ] && return 0
     ########################
     # FIND EXECUTABLES
     ########################
-    declare HTTPD
     if HTTPD=$(command -v httpd) >/dev/null 2>&1; then
         printf 'Found httpd here: %s\n\n' "${HTTPD}"
     else
@@ -97,7 +104,7 @@ isInstalled() {
         exit 1
     fi
 
-    declare APACHECTL
+
     if APACHECTL=$(command -v apachectl) >/dev/null 2>&1; then
         printf 'Found apachectl here: %s\n\n' "${APACHECTL}"
     else
@@ -105,7 +112,6 @@ isInstalled() {
         exit 2
     fi
 
-    declare PHP
     if PHP=$(command -v php) >/dev/null 2>&1; then
         printf 'Found httpd here: %s\n\n' "${PHP}"
     else
@@ -113,15 +119,14 @@ isInstalled() {
         exit 3
     fi
 
-    declare DNSMASQ
     if DNSMASQ=$(command -v dnsmasq) >/dev/null 2>&1; then
         printf 'Found dnsmasq here: %s\n\n' "${DNSMASQ}"
     else
         printf 'DNSMASQ not found!\n\n'
         exit 4
     fi
+    IS_INSTALLED=0
 }
-
 :
 check() {
     isValid "${1}"
@@ -130,7 +135,6 @@ check() {
     :
     local Q; Q="${1#\-}"
     local pid_file_ref; pid_file_ref="$Q[pid]"
-
 
     if [[ ! -r "${!pid_file_ref}" ]]
     then
@@ -203,7 +207,6 @@ MASQ()
 HTTPD()
 {
     local pid
-    [[ ! -x $HTTPD ]] && Msg 'Apache httpd server not found!' 1
     :
     if ! check -H >/dev/null 2>&1
     then
@@ -318,8 +321,6 @@ EXAMPLE:
 helpmenu
 
     gate "${@}"; shift
-
-
 
     if [[ $1 == '-D' || "${#1}" -eq 0 ]]
     then
@@ -543,23 +544,48 @@ helpful()
     exit 0
 }
 
-Build() {
-    if ! isInstalled ;then
-        echo shit
-    fi
 
-    INSTALL_ROOT="${1}"
+FetchConfigs() {
+    local ROOT="${1:?}"
+    local URL_BASE='https://raw.githubusercontent.com/paxperscientiam/http-byob/master/'
+    local FILES=(
+        "conf/httpd.conf"
+        "conf/extra/httpd-autoindex.conf"
+        "conf/extra/httpd-vhosts.conf"
+        "conf/extra/mod_php73.conf"
+        "etc/resolv.conf"
+        "etc/dnsmasq.conf"
+    )
+
+    printf 'Fetching and writing to %s ... \n' "${ROOT}"
+    while IFS='' read -r remote_file; do
+        printf '  %s ... ' "${remote_file}"
+        # don't redownload unncessarily
+        [[ -f "${ROOT}/${remote_file}" ]] && printf 'done (unchanged).\n' && continue
+        (curl "${URL_BASE}/${remote_file}" >| \
+            "${ROOT}/${remote_file}" >/dev/null 2>&1) &
+        wait
+        printf 'done.\n'
+    done < <(printf '%s\n' "${FILES[@]}")
+}
+
+Build() {
+    INSTALL_ROOT="${1:?}"
     if [[ ! -d "${INSTALL_ROOT}" ]]; then
         printf 'The install root %s does not exist\n\n' "${INSTALL_ROOT}"
         exit 1
     fi
     HTTPD_ROOT="${INSTALL_ROOT}/HTTP_BYOB"
-    ERECT=0 # 0 is true
 
     if [[ ! -d "${HTTPD_ROOT}" ]]; then
         printf 'Scaffolding ...\n\n'
     else
         printf 'Build exists already. Aborting.\n\n'
+        #exit 1
+    fi
+
+    if [[ ! -w "${INSTALL_ROOT}" ]]; then
+        printf 'The user `%s` does not have permission to scaffold within the directory `%s`. Please try another.\n\n' "${USER}" "${INSTALL_ROOT}"
         exit 1
     fi
 
@@ -572,9 +598,12 @@ Build() {
         exit $?
     fi
 
-    mkdir -p {"${PID_ROOT}","${CONF_ROOT}","${PHP_ROOT}","${LOGS_ROOT}"}
+    mkdir -p {"${PID_ROOT}","${CONF_ROOT}","${CONF_ROOT}/extra","${PHP_ROOT}","${LOGS_ROOT}"}
 
+    FetchConfigs "${HTTPD_ROOT}"
 
+    exit 77
+    return 0
 }
 
 entry(){
@@ -618,6 +647,7 @@ http-byob()
         build)
             shift
             Build "${@}"
+            #Start -H
             ;;
         start)
             Start "${@}"
@@ -669,5 +699,10 @@ http-byob()
 # DEFAULTS
 DNS_PORT="${DNS_PORT:=53}"
 HTTPD_USER="${HTTPD_USER:=$USER}"
+
+if ! isInstalled ;then
+    printf 'Something is missing!\n\n'
+    exit 1
+fi
 
 entry "${@}"
