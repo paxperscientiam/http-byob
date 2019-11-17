@@ -652,6 +652,7 @@ helpful()
 
 
 FetchConfigs() {
+    local UA="PaxPerScientiam HTTP-BYOB (Pseudo MAMP container maker) "
     local ROOT="${1:?}"
     local URL_BASE='https://raw.githubusercontent.com/paxperscientiam/http-byob/develop/'
     local FILES=(
@@ -659,8 +660,8 @@ FetchConfigs() {
         "conf/extra/httpd-autoindex.conf"
         "conf/extra/httpd-vhosts.conf"
         "conf/extra/mod_php73.conf"
+        "conf/dnsmasq.conf"
         "etc/resolv.conf"
-        "etc/dnsmasq.conf"
     )
 
     printf 'Fetching and writing to %s ... \n' "${ROOT}"
@@ -668,19 +669,20 @@ FetchConfigs() {
         printf '  %s ... ' "${remote_file}"
         # don't redownload unncessarily
         [[ -f "${ROOT}/${remote_file}" ]] && printf 'done (unchanged).\n' && continue
-        (curl "${URL_BASE}/${remote_file}" >| \
-             "${ROOT}/${remote_file}" >/dev/null 2>&1) &
+        (curl -A "${UA}" "${URL_BASE}/${remote_file}" >| \
+             "${ROOT}/${remote_file}" 2>/dev/null ) &
         wait
         printf 'done.\n'
     done < <(printf '%s\n' "${FILES[@]}")
 }
-
+:
 Build() {
     INSTALL_ROOT="${1:?}"
     if [[ ! -d "${INSTALL_ROOT}" ]]; then
         printf 'The install root %s does not exist\n\n' "${INSTALL_ROOT}"
         exit 1
     fi
+
     HTTPD_ROOT="${INSTALL_ROOT}/HTTP_BYOB"
 
     if [[ ! -d "${HTTPD_ROOT}" ]]; then
