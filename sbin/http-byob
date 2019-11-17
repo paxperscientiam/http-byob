@@ -24,8 +24,6 @@ declare -xi HTTPD_LOG_PORT=9000
 declare -xr HTTPD_VHOST_CUSTOM_LOG=/dev/null
 declare -xr HTTPD_VHOST_ERROR_LOG=/dev/null
 
-
-
 declare -xr HTTPD_SERVER_NAME="localhost"
 
 declare -xr HOSTNAME="${HOSTNAME}"
@@ -398,6 +396,12 @@ helpmenu
 
 Env() {
     # define and update values here
+    if [[ "${#INSTALL_ROOT}" -gt 0 ]]; then
+        HTTPD_ROOT="${INSTALL_ROOT}/HTTP_BYOB"
+    else
+        :
+    fi
+
     if [[ $(basename "${HTTPD_ROOT}") == 'HTTP_BYOB' ]]; then
         :
     else
@@ -703,9 +707,14 @@ FetchConfigs() {
 }
 :
 Build() {
-    INSTALL_ROOT="${1:?}"
+    INSTALL_ROOT="${INSTALL_ROOT:?}"
     if [[ ! -d "${INSTALL_ROOT}" ]]; then
         printf 'The install root %s does not exist\n\n' "${INSTALL_ROOT}"
+        exit 1
+    fi
+
+    if [[ ! -w "${INSTALL_ROOT}" ]]; then
+        printf 'The user `%s` does not have permission to scaffold within the directory `%s`. Please try another.\n\n' "${USER}" "${INSTALL_ROOT}"
         exit 1
     fi
 
@@ -722,11 +731,6 @@ Build() {
         printf 'Scaffolding ...\n\n'
     else
         printf 'Build exists already. Aborting.\n\n'
-        #exit 1
-    fi
-
-    if [[ ! -w "${INSTALL_ROOT}" ]]; then
-        printf 'The user `%s` does not have permission to scaffold within the directory `%s`. Please try another.\n\n' "${USER}" "${INSTALL_ROOT}"
         exit 1
     fi
 
@@ -750,12 +754,12 @@ http-byob()
 {
     case $1 in
         build)
-            shift
+            INSTALL_ROOT="${2}"
+            Env
             Build "${@}"
             #Start -H
             ;;
         start)
-            echo start
             HTTPD_ROOT="${2}"
             Env
             Start "${@}"
