@@ -118,6 +118,7 @@ helpmenu
 }
 err_report() {
     echo "Error on line $1"
+    exit 1
 }
 trap 'err_report $LINENO' ERR
 End() {
@@ -125,6 +126,11 @@ End() {
     title 'http-byob: bye'
 }
 trap 'End' EXIT
+force_quit() {
+    echo 'Something went terribly wrong ... maybe'
+    exit 1
+}
+trap 'force_quit' SIGHUP SIGINT SIGTERM INT
 :
 _D(){
     dnsmasq \
@@ -293,29 +299,24 @@ _HTTPD()
 {
     local pid
     :
-    if ! check -H >/dev/null 2>&1
-    then
-        # while IFS= read -r line; do
-        #     printf '%s\n' "$line" | nc "${HOSTNAME}" "${HTTPD_LOG_PORT}"
-        # done < <(
-        #     "${APACHECTL}" \
-            #         -f "${HTTPD_CONFIG}" \
-            #         -e info \
-            #         -DFOREGROUND \
-            #         -k start 2>&1
-        # ) &
-        "${APACHECTL}" \
-            -f "${HTTPD_CONFIG}" \
-            -e debug \
-            -k start
-        #        disown %1
+    # while IFS= read -r line; do
+    #     printf '%s\n' "$line" | nc "${HOSTNAME}" "${HTTPD_LOG_PORT}"
+    # done < <(
+    #     "${APACHECTL}" \
+        #         -f "${HTTPD_CONFIG}" \
+        #         -e info \
+        #         -DFOREGROUND \
+        #         -k start 2>&1
+    # ) &
 
-        printf '%s\n' $'Starting `httpd`. '
+    "${APACHECTL}" \
+        -f "${HTTPD_CONFIG}" \
+        -e debug \
+        -k start
+    #        disown %1
 
-    else
-        check -H
-        exit 100
-    fi
+    printf '%s\n' $'Starting `httpd`. '
+
 }
 
 
@@ -407,9 +408,12 @@ Env() {
     else
         HTTPD_ROOT="${HTTPD_ROOT}/HTTP_BYOB"
     fi
+
     HTTPD_USER=$(logname)
 
     HTTPD_ROOT="${HTTPD_ROOT:=$(pwd)/HTTP_BYOB}"
+
+    HTTPD_ROOT=$(perl -MCwd -e 'print Cwd::abs_path shift' "${HTTPD_ROOT}")
 
     HTTPD_DOCUMENT_ROOT="${HTTPD_ROOT}/www"
 
@@ -444,7 +448,7 @@ checkRoot() {
 # Start
 Start()
 {
-    echo "CONTINUES: ${IS_CONTINUING}"
+    [ "${IS_CONTINUING}" -eq 0 ] && printf 'Continuing ... \n\n'
 
     [[ $1 == 'help' ]] && helpful <<helpmenu
 Start processes.
@@ -682,10 +686,13 @@ helpful()
 
 
 FetchConfigs() {
-    local UA="PaxPerScientiam HTTP-BYOB (Pseudo MAMP container maker) "
+    local UA='PaxPerScientiam HTTP-BYOB (Pseudo MAMP container maker) '
+    local HEADER_1='Accept: application/vnd.github.v3.raw'
     local ROOT="${1:?}"
-    local URL_BASE='https://raw.githubusercontent.com/paxperscientiam/http-byob/develop/'
+    local URL_BASE='https://api.github.com/repos/paxperscientiam/http-byob/contents/'
+    local QUERY='?ref=develop'
     local FILES=(
+        "readme.md"
         "conf/httpd.conf"
         "conf/extra/httpd-autoindex.conf"
         "conf/extra/httpd-vhosts.conf"
@@ -699,7 +706,7 @@ FetchConfigs() {
         printf '  %s ... ' "${remote_file}"
         # don't redownload unncessarily
         [[ -f "${ROOT}/${remote_file}" ]] && printf 'done (unchanged).\n' && continue
-        (curl -A "${UA}" "${URL_BASE}/${remote_file}" >| \
+        (curl -A "${UA}" -H "${HEADER_1}" "${URL_BASE}/${remote_file}${QUERY}" >| \
              "${ROOT}/${remote_file}" 2>/dev/null ) &
         wait
         printf 'done.\n'
@@ -730,8 +737,13 @@ Build() {
         done
         printf 'Scaffolding ...\n\n'
     else
-        printf 'Build exists already. Aborting.\n\n'
-        exit 1
+        printf 'Build exists already. Continue?\n'
+        select yn in "Yes" "No"; do
+            case $yn in
+                Yes ) break;;
+                No ) echo "Aborting"; exit 66;;
+            esac
+        done
     fi
 
     if ! mkdir -p "${HTTPD_DOCUMENT_ROOT}"; then
@@ -762,6 +774,7 @@ http-byob()
         start)
             HTTPD_ROOT="${2}"
             Env
+
             Start "${@}"
             ;;
         stop)

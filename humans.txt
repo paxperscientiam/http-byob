@@ -1,2 +1,3 @@
 /* <3 */
 https://github.com/oupala/apaxy
+https://stackoverflow.com/a/24572274 (awesome solution)
