@@ -273,26 +273,16 @@ MASQ()
 	  printf '%s\n' "nameserver 127.0.0.1" >| "${resolvFile}"
 
 
-    [[ ! -x $DNSMASQ ]] && Msg "Dnsmasq not found" 1
-    :
-
-    if ! check -D >/dev/null 2>&1
-    then
-        title launching dnsmasq
-        _D
-        # while IFS= read -r line; do
-        #     printf '%s\n' "$line" | nc "${HOSTNAME}" "${DNSMASQ_LOG_PORT}"
-        # done < <(
-        #     _D
-        # )
-        # #&
-        # #disown %1
-        printf '%s\n' $'Starting `dnsmasq`.'
-    else
-        check -D
-        exit 100
-    fi
-    title exiting
+    title launching dnsmasq
+    _D
+    # while IFS= read -r line; do
+    #     printf '%s\n' "$line" | nc "${HOSTNAME}" "${DNSMASQ_LOG_PORT}"
+    # done < <(
+    #     _D
+    # )
+    # #&
+    # #disown %1
+    printf '%s\n' $'Starting `dnsmasq`.'n
 }
 #
 _HTTPD()
@@ -476,7 +466,7 @@ helpmenu
 
     IS_CONTINUING=0
     gate "${@}"; shift
-    # MASQ "${2}"
+    MASQ
     _HTTPD
 }
 
