@@ -25,6 +25,7 @@ declare -xr HTTPD_VHOST_CUSTOM_LOG=/dev/null
 declare -xr HTTPD_VHOST_ERROR_LOG=/dev/null
 
 
+
 declare -xr HTTPD_SERVER_NAME="localhost"
 
 declare -xr HOSTNAME="${HOSTNAME}"
@@ -292,8 +293,6 @@ MASQ()
 #
 _HTTPD()
 {
-    env|grep 'HTTP'
-    exit
     local pid
     :
     if ! check -H >/dev/null 2>&1
