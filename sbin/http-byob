@@ -4,27 +4,18 @@ shopt -s nullglob
 unset CDPATH
 #set -x
 :
-###### THE ENVIRONMENT ###########
+###### STATE
+declare -i IS_INSTALLED=1
+declare -i IS_CONTINUING="${IS_CONTINUING:-1}"
+######
+###### THE ENVIRONMENT (declarations) ###########
 declare -x INSTALL_ROOT
-
-# install location
-# if [[ "${1}" == '--erect' ]]; then
-#     INSTALL_ROOT="${2}"
-#     if [[ ! -d "${INSTALL_ROOT}" ]]; then
-#         printf 'The install root %s does not exist\n\n' "${INSTALL_ROOT}"
-#         exit 1
-#     fi
-#     HTTPD_ROOT="${INSTALL_ROOT}/HTTP_BYOB"
-#     ERECT=0 # 0 is true
-# fi
-
-export HTTPD_USER
-HTTPD_USER=$(logname)
+declare -x HTTPD_USER
 
 ###############
 # IO
 ###############
-declare -i DNS_PORT=53
+declare -xi DNS_PORT=53
 declare -xi HTTPD_PORT=80
 
 declare -xi DNSMASQ_LOG_PORT=9005
@@ -53,45 +44,33 @@ fi
 ########################
 # DIRECTORY STRUCTURE
 ########################
+declare -x HTTP_SERVER_ROOT
 
-HTTP_SERVER_ROOT=$(dirname "$(dirname "${HTTPD}")")
-declare -xr HTTP_SERVER_ROOT
-
-# use supplied build root if supplied
-HTTPD_ROOT="${HTTPD_ROOT:=$(pwd)/HTTP_BYOB}"
-declare -x HTTPD_ROOT="${HTTPD_ROOT}"
+declare -x HTTPD_ROOT
 
 # Apache says it NOT include trailing slash
-HTTPD_DOCUMENT_ROOT="${HTTPD_ROOT}/www"
-declare -xr HTTPD_DOCUMENT_ROOT="${HTTPD_DOCUMENT_ROOT}"
+declare -x HTTPD_DOCUMENT_ROOT
 #
-PHP_ROOT="${HTTPD_ROOT}/etc/PHP${PHP_VERSION}/"
-declare -xr PHP_ROOT="${PHP_ROOT}"
+declare -x PHP_ROOT
 
-PID_ROOT="${HTTPD_ROOT}/var/run"
-declare -xr PID_ROOT="${PID_ROOT}"
+declare -x PID_ROOT
 
-CONF_ROOT="${HTTPD_ROOT}/conf"
-declare -xr CONF_ROOT="${CONF_ROOT}"
+declare -x CONF_ROOT
 
-LOGS_ROOT="${HTTPD_ROOT}/logs"
-declare -xr LOGS_ROOT="${LOGS_ROOT}"
+declare -x LOGS_ROOT
 
-
-
-declare -xr DNSMASQ_PID="${PID_ROOT}/dnsmasq.pid"
-declare -xr HTTPD_PID="${PID_ROOT}/httpd.pid"
+declare -x DNSMASQ_PID
+declare -x HTTPD_PID
 :
-export DNS_RESOLV="${HTTPD_ROOT}/etc/resolv.conf"
-export DNS_HOSTS="${HTTPD_ROOT}/etc/hosts"
-
-
+declare -x DNS_RESOLV
+declare -x DNS_HOSTS
+:
 # Configs
-declare -xr HTTPD_CONFIG="${CONF_ROOT}/httpd.conf"
-declare -xr DNSMASQ_CONFIG="${CONF_ROOT}/dnsmasq.conf"
+declare -x HTTPD_CONFIG
+declare -x DNSMASQ_CONFIG
 
 
-export PHPRC="${PHP_ROOT}/php.ini"
+declare -x PHPRC
 
 declare -A D
 export D
@@ -190,10 +169,10 @@ Msg() {
 :
 # permission check
 gate() {
-    [[ $UID -eq 0 ]] || exec sudo "${0}" "${@}"
+    [[ $UID -eq 0 ]] || exec sudo IS_CONTINUING=0 "${0}" "${@}"
 }
 
-declare -i IS_INSTALLED=1
+
 declare HTTPD
 declare APACHECTL
 declare PHP
@@ -204,6 +183,7 @@ isInstalled() {
     # FIND EXECUTABLES
     ########################
     if HTTPD=$(command -v httpd) >/dev/null 2>&1; then
+        HTTP_SERVER_ROOT=$(dirname "$(dirname "${HTTPD}")")
         printf 'Found httpd here: %s\n\n' "${HTTPD}"
     else
         printf 'Apache httpd not found!\n\n'
@@ -310,8 +290,10 @@ MASQ()
     title exiting
 }
 #
-HTTPD()
+_HTTPD()
 {
+    env|grep 'HTTP'
+    exit
     local pid
     :
     if ! check -H >/dev/null 2>&1
@@ -415,10 +397,53 @@ helpmenu
 
 }
 
+Env() {
+    # define and update values here
+    if [[ $(basename "${HTTPD_ROOT}") == 'HTTP_BYOB' ]]; then
+        :
+    else
+        HTTPD_ROOT="${HTTPD_ROOT}/HTTP_BYOB"
+    fi
+    HTTPD_USER=$(logname)
+
+    HTTPD_ROOT="${HTTPD_ROOT:=$(pwd)/HTTP_BYOB}"
+
+    HTTPD_DOCUMENT_ROOT="${HTTPD_ROOT}/www"
+
+    PHP_ROOT="${HTTPD_ROOT}/etc/PHP${PHP_VERSION}/"
+
+    PID_ROOT="${HTTPD_ROOT}/var/run"
+
+    CONF_ROOT="${HTTPD_ROOT}/conf"
+
+    LOGS_ROOT="${HTTPD_ROOT}/logs"
+
+    DNSMASQ_PID="${PID_ROOT}/dnsmasq.pid"
+
+    HTTPD_PID="${PID_ROOT}/httpd.pid"
+
+    DNS_RESOLV="${HTTPD_ROOT}/etc/resolv.conf"
+
+    DNS_HOSTS="${HTTPD_ROOT}/etc/hosts"
+
+    HTTPD_CONFIG="${CONF_ROOT}/httpd.conf"
+
+    DNSMASQ_CONFIG="${CONF_ROOT}/dnsmasq.conf"
+
+    PHPRC="${PHP_ROOT}/php.ini"
+
+}
+
+checkRoot() {
+    :
+}
+
 # Start
 Start()
 {
-    [[ $2 == 'help' ]] && helpful <<helpmenu
+    echo "CONTINUES: ${IS_CONTINUING}"
+
+    [[ $1 == 'help' ]] && helpful <<helpmenu
 Start processes.
 
 EXAMPLE:
@@ -426,24 +451,26 @@ EXAMPLE:
  $ sbin/http-body start -H  # launch \`httpd\`
 helpmenu
 
-    local _HTTPD_ROOT="${3:?}"
-    if [[ ! -d "${_HTTPD_ROOT}" ]]; then
-        printf 'The project root %s does not exist\n\n' "${_HTTPD_ROOT}"
-        exit 1
+    if [ "${IS_CONTINUING}" -ne 0 ]; then
+        if [[ -d "${HTTPD_ROOT}" ]]; then
+            echo "Ready to start. Continue?"
+            select yn in "Yes" "No"; do
+                case $yn in
+                    Yes ) break;;
+                    No ) exit 66;;
+                esac
+            done
+            printf 'Starting ...\n\n'
+        else
+            printf 'No container found. Aborting.\n\n'
+            exit 1
+        fi
     fi
-    HTTPD_ROOT="${_HTTPD_ROOT}"
 
+    IS_CONTINUING=0
     gate "${@}"; shift
-
-    if [[ $1 == '-D' || "${#1}" -eq 0 ]]
-    then
-        MASQ "${2}"
-    fi
-    :
-    if [[ $1 == '-H' || "${#1}" -eq 0 ]]
-    then
-        HTTPD "${2}"
-    fi
+    # MASQ "${2}"
+    _HTTPD
 }
 
 #
@@ -729,6 +756,9 @@ http-byob()
             #Start -H
             ;;
         start)
+            echo start
+            HTTPD_ROOT="${2}"
+            Env
             Start "${@}"
             ;;
         stop)
