@@ -2,7 +2,7 @@
 shopt -s extglob
 shopt -s nullglob
 unset CDPATH
-set -x
+#set -x
 :
 ###### STATE
 declare -i IS_INSTALLED=1
@@ -512,7 +512,7 @@ helpmenu
         :
     fi
 
-    [ ! -z "${2}" ] && echo "Unknown option ${2}" && exit 1
+    [[ ! -z "${2}" ]] && echo "Unknown option ${2}" && exit 1
 
     printf 'Completely shutdown.\n\n'
 }
@@ -570,7 +570,7 @@ helpmenu
         fi
     fi
 
-    [ ! -z "${2}" ] && echo "Unknown option ${2}" && exit 1
+    [[ ! -z "${2}" ]] && echo "Unknown option ${2}" && exit 1
 }
 
 Test()
@@ -651,37 +651,48 @@ Status() {
     [[ $2 == 'help' ]] && helpful <<helpmenu
 Dislay the status of various processes.
 helpmenu
+    # require watch
+    local HAS_WATCH=1
+    if ! command -v watch >/dev/null 2>&1; then
+        printf 'The watch program is required for showing status continuously.\n'
+    else
+        HAS_WATCH=0
+    fi
+    echo $HAS_WATCH
+
+
     shift
     title status
 
 
     local pid
 
-    tput smcup
+    #   tput smcup
 
-    tput sgr0 # turn off text attributes
+    #   tput sgr0 # turn off text attributes
     ps -o "ppid,pid,etime,user,comm" | head -n 1 | column -t
 
-    while IFS= read -r line; do
-        tput sc
+    # while IFS= read -r line; do
+    #     tput sc
 
-        [[ -r "${DNSMASQ_PID}" ]] && tmp1=$(< "${DNSMASQ_PID}")
-        mapfile -t tmp2 < <(pgrep httpd)
-        proc=("${tmp1}" "${tmp2[*]}")
+    # [[ -r "${DNSMASQ_PID}" ]] && tmp1=$(< "${DNSMASQ_PID}")
+    # mapfile -t tmp2 < <(pgrep httpd)
+    # proc=("${tmp1}" "${tmp2[*]}")
 
-        for pid in ${proc[@]}; do
-            command ps -p "${pid}" -o "ppid=,pid=,etime=,user=,comm=" | column -t 2>&1
-            tput el
-        done
-        sleep 2
-        tput ed
-        tput rc
-    done < <(
-        yes
-    ) &
-    wait
+    if _Locate "${DNSMASQ_PID}"; then
+        PID=$(<"${DNSMASQ_PID}")
+        # comm= give short and command= gives full command
+        command ps -p "${PID}" -o "comm=" | column -t 2>&1
+    else
+        printf 'The PID file (%s) for dnsmasq was not found!\n\n' "${DNSMASQ_PID}"
+    fi
 
-    tput rmcup
+    if _Locate "${HTTPD_PID}"; then
+        PID=$(<"${HTTPD_PID}")
+        command ps -p "${PID}" -o "comm=" | column -t 2>&1
+    else
+        printf 'The PID file (%s) for httpd was not found!\n\n' "${HTTPD_PID}"
+    fi
 }
 
 
