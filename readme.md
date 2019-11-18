@@ -1,4 +1,5 @@
-# DISCLAIMER: THINGS ARE CHANGING
+# DISCLAIMER: THIS SCRIPT IS EXPERIMENTAL. YOU USE IT AT YOUR OWN PERIL.
+
 
 Testing
 Assuming you clone repo into your HOME folder ...
