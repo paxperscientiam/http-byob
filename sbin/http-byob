@@ -2,7 +2,7 @@
 shopt -s extglob
 shopt -s nullglob
 unset CDPATH
-#set -x
+set -x
 :
 ###### STATE
 declare -i IS_INSTALLED=1
@@ -135,7 +135,7 @@ trap 'force_quit' SIGHUP SIGINT SIGTERM INT
 _D(){
     dnsmasq \
         --log-queries \
-        --log-facility=- \
+        --log-facility=DAEMON \
         --log-async=15 \
         --stop-dns-rebind \
         --bind-interfaces \
@@ -217,33 +217,6 @@ isInstalled() {
         exit 4
     fi
     IS_INSTALLED=0
-}
-:
-check() {
-    isValid "${1}"
-    :
-    local pid
-    :
-    local Q; Q="${1#\-}"
-    local pid_file_ref; pid_file_ref="$Q[pid]"
-
-    if [[ ! -r "${!pid_file_ref}" ]]
-    then
-        printf '%s\n' "PID file not found!"
-        return 1
-    else
-        pid=$(<"${!pid_file_ref}")
-        if ! ps -p "${pid}" >/dev/null 2>&1
-        then
-            printf 'The PID file indicates %s; however, no such process exists.\n' "\`${pid}\`"
-            return 1
-        else
-            printf 'The PID file exists and corresponds to a valid process (%s)\n' "${pid}"
-            title existing process
-            return 0
-        fi
-    fi
-    return 1
 }
 :
 isValid()
@@ -467,8 +440,16 @@ helpmenu
 
     IS_CONTINUING=0
     gate "${@}"; shift
-    MASQ
-    _HTTPD
+
+    if [ -z "${2}" ] || [ "${2}" == '-D' ]; then
+        MASQ
+    fi
+
+    if [ -z "${2}" ] || [ "${2}" == '-H' ]; then
+        _HTTPD
+    fi
+
+    [ ! -z "${2}" ] && echo "Unknown option ${2}" && exit 1
 }
 
 #
@@ -503,27 +484,35 @@ helpmenu
 
     IS_CONTINUING=0
     gate "${@}"; shift
-
-
-    if [[ -r "${DNSMASQ_PID}" ]]; then
-        z=$(<"${DNSMASQ_PID}")
-        pkill -TERM -F "${DNSMASQ_PID}" >/dev/null 2>&1 &
-        printf 'Stopping dnsmasq (%s) ... ' "${z}"
-        wait
-        printf 'done.\n'
+    if [ -z "${2}" ] || [ "${2}" == '-D' ]; then
+        if [[ -r "${DNSMASQ_PID}" ]]; then
+            z=$(<"${DNSMASQ_PID}")
+            pkill -TERM -F "${DNSMASQ_PID}" >/dev/null 2>&1 &
+            printf 'Stopping dnsmasq (%s) ... ' "${z}"
+            wait
+            printf 'done.\n'
+        else
+            printf 'No PID file for dnsmasq found.\n\n'
+        fi
     else
-        printf 'No PID file for dnsmasq found.\n\n'
+        :
     fi
 
-    if [[ -r "${HTTPD_PID}" ]]; then
-        z=$(<"${HTTPD_PID}")
-        pkill -TERM -F "${HTTPD_PID}" >/dev/null 2>&1 &
-        printf 'Stopping httpd (%s) ... ' "${z}"
-        wait
-        printf 'done.\n'
+    if [ -z "${2}" ] || [ "${2}" == '-H' ]; then
+        if [[ -r "${HTTPD_PID}" ]]; then
+            z=$(<"${HTTPD_PID}")
+            pkill -TERM -F "${HTTPD_PID}" >/dev/null 2>&1 &
+            printf 'Stopping httpd (%s) ... ' "${z}"
+            wait
+            printf 'done.\n'
+        else
+            printf 'No PID file for httpd found.\n\n'
+        fi
     else
-        printf 'No PID file for httpd found.\n\n'
+        :
     fi
+
+    [ ! -z "${2}" ] && echo "Unknown option ${2}" && exit 1
 
     printf 'Completely shutdown.\n\n'
 }
@@ -541,33 +530,47 @@ helpmenu
 
     gate "${@}"; shift
 
-    if _Locate "${HTTPD_PID}"; then
-        pkill -HUP -F "${HTTPD_PID}" &
-        printf '%s' "Restarting Apache httpd ... "
-        wait
+    if [ -z "${2}" ] || [ "${2}" == '-H' ]; then
+        if _Locate "${HTTPD_PID}"; then
+            pkill -HUP -F "${HTTPD_PID}" &
+            printf '%s' "Restarting Apache httpd ... "
+            wait
 
-        PID="$(<"${HTTPD_PID}")"
-        if ps -p "${PID:?}" >/dev/null 2>&1
-        then
-            printf '%s (%s)\n' "done." "${PID}"
+            PID="$(<"${HTTPD_PID}")"
+            if ps -p "${PID:?}" >/dev/null 2>&1
+            then
+                printf '%s (%s)\n' "done." "${PID}"
+            else
+                # test if restart was successful
+                printf '%s (%s)\n' "failed." "$?"
+            fi
         else
-            # test if restart was successful
-            printf '%s (%s)\n' "failed." "$?"
+            printf 'The PID file %s was not found! Unable to restart!\n\n' "${HTTPD_PID}"
         fi
-    else
-        printf 'The PID file %s was not found! Unable to restart!\n\n' "${HTTPD_PID}"
     fi
-    # if [[ ! -r "${DNSMASQ_PID}" ]]; then
-    #     Msg "No dnsmasq process found."
-    # else
-    #     z=$(<"${DNSMASQ_PID}")
-    #     pkill -TERM -F "${DNSMASQ_PID}" >/dev/null 2>&1 &
-    #     printf 'Stopping dnsmasq (%s) ... ' "${z}"
-    #     wait
-    #     printf 'done.\n'
-    # fi
 
+    if [ -z "${2}" ] || [ "${2}" == '-D' ]; then
 
+        if _Locate "${DNSMASQ_PID}"; then
+            # SIGHUP forces reread of files sooo should work?
+            pkill -SIGUSR1 -F "${DNSMASQ_PID}" &
+            printf 'Restarting dnsmasq (%s) ... ' "${PID}"
+            wait
+
+            PID=$(<"${DNSMASQ_PID}")
+            if ps -p "${PID:?}" >/dev/null 2>&1
+            then
+                printf '%s (%s)\n' "done." "${PID}"
+            else
+                # test if restart was successful
+                printf '%s (%s)\n' "failed." "$?"
+            fi
+        else
+            printf 'The PID file %s was not found! Unable to restart!\n\n' "${DNSMASQ_PID}"
+        fi
+    fi
+
+    [ ! -z "${2}" ] && echo "Unknown option ${2}" && exit 1
 }
 
 Test()
@@ -728,7 +731,7 @@ Build() {
     fi
 
     if [[ ! -w "${INSTALL_ROOT}" ]]; then
-        printf 'The user `%s` does not have permission to scaffold within the directory `%s`. Please try another.\n\n' "${USER}" "${INSTALL_ROOT}"
+        printf 'The user %s does not have permission to scaffold within the directory %s. Please try another.\n\n' "${USER}" "${INSTALL_ROOT}"
         exit 1
     fi
 
@@ -801,15 +804,15 @@ http-byob()
             Listen "${@}"
             ;;
         clean)
+            HTTPD_ROOT="${2}"
+            Env
             Stop "${@}"
             Clean "${@}"
             ;;
         status)
+            HTTPD_ROOT="${2}"
+            Env
             Status "${@}"
-            ;;
-        check)
-            shift
-            check "${1}"
             ;;
         help)
             shift
