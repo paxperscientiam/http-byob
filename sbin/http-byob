@@ -298,7 +298,6 @@ _HTTPD()
         #         -DFOREGROUND \
         #         -k start 2>&1
     # ) &
-
     "${APACHECTL}" \
         -f "${HTTPD_CONFIG}" \
         -e debug \
@@ -395,7 +394,6 @@ Env() {
         echo shit
     elif [ "${#HTTPD_ROOT}" -gt 0 ]; then
         HTTPD_ROOT="${HTTPD_ROOT}/HTTP_BYOB"
-        echo omfg
     else
         _HTTPD_ROOT="$PWD/HTTP_BYOB"
     fi
@@ -594,12 +592,13 @@ helpmenu
     #     printf '\v\v'
 
     # alias list
-    printf '%s\n' "Server alias list:"
-    while IFS='' read -r line; do
-        if [[ $line =~ alias*(.+) ]]; then
-            printf '%s\n' "${BASH_REMATCH[1]}"
-        fi
-    done < <("${APACHECTL}" -f "${HTTPD_CONFIG}" -S)
+    # printf '%s\n' "Server alias list:"
+    # while IFS='' read -r line; do
+    #     if [[ $line =~ alias*(.+) ]]; then
+    #         printf '%s\n' "${BASH_REMATCH[1]}"
+    #     fi
+    # done < <("${APACHECTL}" -f "${HTTPD_CONFIG}" -S)
+    "${APACHECTL}" -f "${HTTPD_CONFIG}" -S
 
     printf '\v\v'
 
@@ -813,11 +812,12 @@ http-byob()
 DNS_PORT="${DNS_PORT:=53}"
 HTTPD_USER="${HTTPD_USER:=$USER}"
 
-if [ "${IS_CONTINUING}" -ne 0 ]; then
+# if [ "${IS_CONTINUING}" -ne 0 ]; then
+#     echo shit
     if ! isInstalled ;then
         printf 'Something is missing!\n\n'
         exit 1
     fi
-fi
+#fi
 
 entry "${@}"
