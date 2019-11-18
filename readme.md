@@ -2,6 +2,14 @@
 
 
 Testing
+
+``` shell
+# clone in $HOME folder
+cd ~
+git clone git@github.com:paxperscientiam/http-byob.git
+
+```
+
 Assuming you clone repo into your HOME folder ...
 
 ``` shell
