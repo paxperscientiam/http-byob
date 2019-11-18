@@ -386,22 +386,23 @@ helpmenu
 }
 
 Env() {
+    local _HTTPD_ROOT
     # define and update values here
-    if [[ "${#INSTALL_ROOT}" -gt 0 ]]; then
+    if [ "${#INSTALL_ROOT}" -gt 0 ]; then
         HTTPD_ROOT="${INSTALL_ROOT}/HTTP_BYOB"
-    else
+    elif [[ $(basename "${HTTPD_ROOT}") == 'HTTP_BYOB' ]]; then
         :
-    fi
-
-    if [[ $(basename "${HTTPD_ROOT}") == 'HTTP_BYOB' ]]; then
-        :
-    else
+        echo shit
+    elif [ "${#HTTPD_ROOT}" -gt 0 ]; then
         HTTPD_ROOT="${HTTPD_ROOT}/HTTP_BYOB"
+        echo omfg
+    else
+        _HTTPD_ROOT="$PWD/HTTP_BYOB"
     fi
 
     HTTPD_USER=$(logname)
 
-    HTTPD_ROOT="${HTTPD_ROOT:=$(pwd)/HTTP_BYOB}"
+    HTTPD_ROOT="${HTTPD_ROOT:-${_HTTPD_ROOT:?}}"
 
     HTTPD_ROOT=$(perl -MCwd -e 'print Cwd::abs_path shift' "${HTTPD_ROOT}")
 
@@ -474,60 +475,57 @@ helpmenu
 # Stop
 Stop()
 {
-    local stopReply
-    local state
+    [ "${IS_CONTINUING}" -eq 0 ] && printf 'Continuing ... \n\n'
     :
-    [[ $2 == 'help' ]] && helpful <<'helpmenu'
+    [[ $1 == 'help' ]] && helpful <<'helpmenu'
 Stop processes.
 
 EXAMPLE:
  $ sbin/http-byob stop -D  # Stop `dnsmasq`
  $ sbin/http-byob stop -H  # Stop `httpd`
 helpmenu
+
+    if [ "${IS_CONTINUING}" -ne 0 ]; then
+        if [[ -d "${HTTPD_ROOT}" ]]; then
+            echo "Ready to stop. Continue?"
+            select yn in "Yes" "No"; do
+                case $yn in
+                    Yes ) break;;
+                    No ) exit 66;;
+                esac
+            done
+            printf 'Stopping ...\n\n'
+        else
+            printf 'No container found. Aborting.\n\n'
+            exit 1
+        fi
+    fi
+
+    IS_CONTINUING=0
     gate "${@}"; shift
-    isValid "${1}"
+    #isValid "${1}"
 
-    if [[ "${#1}" -eq 0 ]]; then
-        for i in D H
-        do
-            x="$i[pid]"
-            y="$i[proc]"
-            [[ ! -r "${!x}" ]] && continue
-            z=$(<"${!x}")
-            pkill -TERM -F "${!x}" >/dev/null 2>&1 &
-            printf 'Stopping %s (%s) ... ' "${!y}" "${z}"
-            wait
-            printf 'done.\n'
-        done
-        printf "complete\\n"
-        return
-    fi
-
-
-    [[ "${#1}" -gt 0 ]] && \
-        local Q; Q="${1#\-}" && \
-        local pid_file_ref; pid_file_ref="$Q[pid]" && \
-        local proc_ref; proc_ref="$Q[proc]"
-
-    if [[ -f "${!pid_file_ref}" ]]; then
-        local pid="$(<"${!pid_file_ref}")"
-    else
-        printf $'Found no reference to %s\n' "${!proc_ref}"
-        return
-    fi
-
-    IFS=: read -r stopReply state < <(check "${1}")
-
-    if [[ "$state" -eq 0 ]]
-    then
-        pkill -TERM -F "${!pid_file_ref}" >/dev/null 2>&1 &
-        printf 'Stopping %s (%s) ... ' "${!proc_ref}" "${pid}"
+    if [[ -r "${DNSMASQ_PID}" ]]; then
+        z=$(<"${DNSMASQ_PID}")
+        pkill -TERM -F "${DNSMASQ_PID}" >/dev/null 2>&1 &
+        printf 'Stopping dnsmasq (%s) ... ' "${z}"
         wait
         printf 'done.\n'
     else
-        printf $'Attempt to stop `%s` failed: %s\n' "${!proc_ref}" "${stopReply}"
+        printf 'No PID file for dnsmasq found.\n\n'
     fi
-    :
+
+    if [[ -r "${HTTPD_PID}" ]]; then
+        z=$(<"${HTTPD_PID}")
+        pkill -TERM -F "${HTTPD_PID}" >/dev/null 2>&1 &
+        printf 'Stopping httpd (%s) ... ' "${z}"
+        wait
+        printf 'done.\n'
+    else
+        printf 'No PID file for httpd found.\n\n'
+    fi
+
+    printf 'Completely shutdown.\n\n'
 }
 
 Restart()
@@ -669,7 +667,6 @@ helpmenu
 helpful()
 {
     read -r -d '' helpStatement
-
     printf 'HELP:\n %s\n' "${helpStatement}"
     exit 0
 }
@@ -764,10 +761,11 @@ http-byob()
         start)
             HTTPD_ROOT="${2}"
             Env
-
             Start "${@}"
             ;;
         stop)
+            HTTPD_ROOT="${2}"
+            Env
             Stop "${@}"
             ;;
         restart)
