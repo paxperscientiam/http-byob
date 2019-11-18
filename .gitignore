@@ -1,6 +1,5 @@
 logs/
 www/
-vhosts.d/
 ssl/
 var/run/
 *.bak
