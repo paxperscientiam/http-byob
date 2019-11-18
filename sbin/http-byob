@@ -406,6 +406,8 @@ Env() {
 
     HTTPD_DOCUMENT_ROOT="${HTTPD_ROOT}/www"
 
+    VHOST_ROOT="${HTTPD_ROOT}/vhosts.d"
+
     PHP_ROOT="${HTTPD_ROOT}/etc/PHP${PHP_VERSION}/"
 
     PID_ROOT="${HTTPD_ROOT}/var/run"
@@ -686,6 +688,7 @@ FetchConfigs() {
         "conf/extra/mod_php73.conf"
         "conf/dnsmasq.conf"
         "etc/resolv.conf"
+        "vhosts.d/all.conf"
     )
 
     printf 'Fetching and writing to %s ... \n' "${ROOT}"
@@ -737,7 +740,7 @@ Build() {
         exit $?
     fi
 
-    mkdir -p {"${PID_ROOT}","${CONF_ROOT}","${CONF_ROOT}/extra","${PHP_ROOT}","${LOGS_ROOT}"}
+    mkdir -p {"${PID_ROOT}","${CONF_ROOT}","${CONF_ROOT}/extra","${PHP_ROOT}","${LOGS_ROOT}","${VHOST_ROOT}"}
 
     FetchConfigs "${HTTPD_ROOT}"
 
