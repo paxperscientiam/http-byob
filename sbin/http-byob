@@ -379,6 +379,8 @@ Env() {
 
     HTTPD_DOCUMENT_ROOT="${HTTPD_ROOT}/www"
 
+    HOME_SITE_ROOT="${HTTPD_DOCUMENT_ROOT}/home"
+
     VHOST_ROOT="${HTTPD_ROOT}/vhosts.d"
 
     PHP_ROOT="${HTTPD_ROOT}/etc/PHP${PHP_VERSION}/"
@@ -771,7 +773,7 @@ Build() {
         exit $?
     fi
 
-    mkdir -p {"${PID_ROOT}","${CONF_ROOT}","${CONF_ROOT}/extra","${PHP_ROOT}","${LOGS_ROOT}","${VHOST_ROOT}"}
+    mkdir -p {"${PID_ROOT}","${CONF_ROOT}","${CONF_ROOT}/extra","${PHP_ROOT}","${LOGS_ROOT}","${VHOST_ROOT}","${HOME_SITE_ROOT}"}
 
     FetchConfigs "${HTTPD_ROOT}"
 
