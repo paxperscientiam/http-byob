@@ -6,10 +6,19 @@ Assuming you clone repo into your HOME folder ...
 
 ``` shell
 cd ~
-http-byob/sbin/http-byob build . # this will scaffold a server in your HOME
-http-byob/sbin/http-byob start . # start httpd and dnsmasq
+http-byob/sbin/http-byob build ./ # this will scaffold a server in your HOME
+http-byob/sbin/http-byob start ./ # start httpd and dnsmasq
 ```
 Confirm that things are working well by going here: http://localhost:80/server-info
+
+
+Tearing down ...
+``` shell
+cd ~
+http-byob/sbin/http-byob stop ./ # stop httpd and dnsmasq
+\rm HTTP_BYOB # this will remove everyting ... duh
+```
+
 
 <!-- Under heavy development. Use it at your own peril. -->
 
