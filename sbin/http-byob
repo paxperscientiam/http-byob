@@ -503,7 +503,7 @@ helpmenu
 
     IS_CONTINUING=0
     gate "${@}"; shift
-    #isValid "${1}"
+
 
     if [[ -r "${DNSMASQ_PID}" ]]; then
         z=$(<"${DNSMASQ_PID}")
@@ -578,6 +578,23 @@ Test()
     [[ $2 == 'help' ]] && helpful <<helpmenu
 Test that configuration files are syntactically correct.
 helpmenu
+
+     if [ "${IS_CONTINUING}" -ne 0 ]; then
+        if [[ -d "${HTTPD_ROOT}" ]]; then
+            echo "Ready to test. Continue?"
+            select yn in "Yes" "No"; do
+                case $yn in
+                    Yes ) break;;
+                    No ) exit 66;;
+                esac
+            done
+            printf 'Testing ...\n\n'
+        else
+            printf 'No container found. Aborting.\n\n'
+            exit 1
+        fi
+    fi
+
 
     IS_CONTINUING=0
     gate "${@}"; shift
@@ -681,6 +698,7 @@ FetchConfigs() {
     local URL_BASE='https://api.github.com/repos/paxperscientiam/http-byob/contents/'
     local QUERY='?ref=develop'
     local FILES=(
+        "www/home/fallback.php"
         "readme.md"
         "conf/httpd.conf"
         "conf/extra/httpd-autoindex.conf"
@@ -774,6 +792,8 @@ http-byob()
             Restart "${@}"
             ;;
         test)
+            HTTPD_ROOT="${2}"
+            Env
             Test "${@}"
             ;;
         listen|watch)
