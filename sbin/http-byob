@@ -441,7 +441,7 @@ Start()
 {
     [ "${IS_CONTINUING}" -eq 0 ] && printf 'Continuing ... \n\n'
 
-    [[ $1 == 'help' ]] && helpful <<helpmenu
+    [[ $2 == 'help' ]] && helpful <<helpmenu
 Start processes.
 
 EXAMPLE:
@@ -477,7 +477,7 @@ Stop()
 {
     [ "${IS_CONTINUING}" -eq 0 ] && printf 'Continuing ... \n\n'
     :
-    [[ $1 == 'help' ]] && helpful <<'helpmenu'
+    [[ $2 == 'help' ]] && helpful <<'helpmenu'
 Stop processes.
 
 EXAMPLE:
@@ -573,10 +573,13 @@ helpmenu
 
 Test()
 {
+    [ "${IS_CONTINUING}" -eq 0 ] && printf 'Continuing ... \n\n'
+
     [[ $2 == 'help' ]] && helpful <<helpmenu
 Test that configuration files are syntactically correct.
 helpmenu
 
+    IS_CONTINUING=0
     gate "${@}"; shift
 
     local ERR
@@ -590,8 +593,6 @@ helpmenu
     #     fi
     #     printf '\v\v'
 
-    exit
-    :
     # alias list
     printf '%s\n' "Server alias list:"
     while IFS='' read -r line; do
@@ -756,7 +757,6 @@ http-byob()
             INSTALL_ROOT="${2}"
             Env
             Build "${@}"
-            #Start -H
             ;;
         start)
             HTTPD_ROOT="${2}"
@@ -813,9 +813,11 @@ http-byob()
 DNS_PORT="${DNS_PORT:=53}"
 HTTPD_USER="${HTTPD_USER:=$USER}"
 
-if ! isInstalled ;then
-    printf 'Something is missing!\n\n'
-    exit 1
+if [ "${IS_CONTINUING}" -ne 0 ]; then
+    if ! isInstalled ;then
+        printf 'Something is missing!\n\n'
+        exit 1
+    fi
 fi
 
 entry "${@}"
