@@ -422,6 +422,8 @@ EXAMPLE:
  $ sbin/http-body start -H  # launch \`httpd\`
 helpmenu
 
+    if ! isValid "${3}"; then exit $?; fi
+
     if [ "${IS_CONTINUING}" -ne 0 ]; then
         if [[ -d "${HTTPD_ROOT}" ]]; then
             echo "Ready to start. Continue?"
@@ -448,8 +450,6 @@ helpmenu
     if [ -z "${2}" ] || [ "${2}" == '-H' ]; then
         _HTTPD
     fi
-
-    [ ! -z "${2}" ] && echo "Unknown option ${2}" && exit 1
 }
 
 #
@@ -465,6 +465,8 @@ EXAMPLE:
  $ sbin/http-byob stop -D  # Stop `dnsmasq`
  $ sbin/http-byob stop -H  # Stop `httpd`
 helpmenu
+
+    if ! isValid "${3}"; then exit $?; fi
 
     if [ "${IS_CONTINUING}" -ne 0 ]; then
         if [[ -d "${HTTPD_ROOT}" ]]; then
@@ -512,8 +514,6 @@ helpmenu
         :
     fi
 
-    [[ ! -z "${2}" ]] && echo "Unknown option ${2}" && exit 1
-
     printf 'Completely shutdown.\n\n'
 }
 
@@ -527,6 +527,8 @@ Restart()
     [[ $2 == 'help' ]] && helpful <<helpmenu
 Restart processes.
 helpmenu
+
+    if ! isValid "${3}"; then exit $?; fi
 
     gate "${@}"; shift
 
@@ -569,8 +571,6 @@ helpmenu
             printf 'The PID file %s was not found! Unable to restart!\n\n' "${DNSMASQ_PID}"
         fi
     fi
-
-    [[ ! -z "${2}" ]] && echo "Unknown option ${2}" && exit 1
 }
 
 Test()
