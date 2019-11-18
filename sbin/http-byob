@@ -528,6 +528,11 @@ helpmenu
     printf 'Completely shutdown.\n\n'
 }
 
+_Locate() {
+    [[ -f "${1}" ]] && return 0
+    return 1
+}
+
 Restart()
 {
     [[ $2 == 'help' ]] && helpful <<helpmenu
@@ -536,38 +541,32 @@ helpmenu
 
     gate "${@}"; shift
 
-
-    isValid "${1}"
-    :
-    if [[ $1 == '-H' || "${#1}" -eq 0 ]]
-    then
-        if ! check -H
-        then
-            Msg "No httpd process found." && return 1
-        fi
+    if _Locate "${HTTPD_PID}"; then
         pkill -HUP -F "${HTTPD_PID}" &
         printf '%s' "Restarting Apache httpd ... "
         wait
-        if ps -p "${HTTPD_PID}" >/dev/null 2>&1
+
+        PID="$(<"${HTTPD_PID}")"
+        if ps -p "${PID:?}" >/dev/null 2>&1
         then
-            printf '%s (%s)\n' "done." "$?"
+            printf '%s (%s)\n' "done." "${PID}"
         else
             # test if restart was successful
             printf '%s (%s)\n' "failed." "$?"
-            Clean -H
-            Msg "Please run this script with sudo" 101
         fi
+    else
+        printf 'The PID file %s was not found! Unable to restart!\n\n' "${HTTPD_PID}"
     fi
+    # if [[ ! -r "${DNSMASQ_PID}" ]]; then
+    #     Msg "No dnsmasq process found."
+    # else
+    #     z=$(<"${DNSMASQ_PID}")
+    #     pkill -TERM -F "${DNSMASQ_PID}" >/dev/null 2>&1 &
+    #     printf 'Stopping dnsmasq (%s) ... ' "${z}"
+    #     wait
+    #     printf 'done.\n'
+    # fi
 
-    if [[ $1 == '-D' || "${#1}" -eq 0 ]]
-    then
-        [[ ! -r "${DNSMASQ_PID}" ]] && \
-            Msg "No dnsmasq process found." && \
-            return
-        Stop -D &
-        wait
-        Start -D
-    fi
 
 }
 
@@ -579,7 +578,7 @@ Test()
 Test that configuration files are syntactically correct.
 helpmenu
 
-     if [ "${IS_CONTINUING}" -ne 0 ]; then
+    if [ "${IS_CONTINUING}" -ne 0 ]; then
         if [[ -d "${HTTPD_ROOT}" ]]; then
             echo "Ready to test. Continue?"
             select yn in "Yes" "No"; do
@@ -789,6 +788,8 @@ http-byob()
             Stop "${@}"
             ;;
         restart)
+            HTTPD_ROOT="${2}"
+            Env
             Restart "${@}"
             ;;
         test)
@@ -837,10 +838,10 @@ HTTPD_USER="${HTTPD_USER:=$USER}"
 
 # if [ "${IS_CONTINUING}" -ne 0 ]; then
 #     echo shit
-    if ! isInstalled ;then
-        printf 'Something is missing!\n\n'
-        exit 1
-    fi
+if ! isInstalled ;then
+    printf 'Something is missing!\n\n'
+    exit 1
+fi
 #fi
 
 entry "${@}"
