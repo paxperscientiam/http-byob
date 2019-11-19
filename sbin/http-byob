@@ -31,6 +31,7 @@ declare -xr HOSTNAME="${HOSTNAME}"
 # will only override what is allowed
 # source http_byob.cfg >/dev/null 2>&1
 
+PS3="Please choose an option: "
 
 declare PHP_VERSION
 if ! PHP_VERSION=$(php -r "echo PHP_MAJOR_VERSION.PHP_MINOR_VERSION;") >/dev/null 2>&1; then
@@ -124,6 +125,8 @@ trap 'err_report $LINENO' ERR
 End() {
     :
     title 'http-byob: bye'
+    printf '\nBye\n'
+    exit
 }
 trap 'End' EXIT
 force_quit() {
@@ -135,7 +138,7 @@ trap 'force_quit' SIGHUP SIGINT SIGTERM INT
 _D(){
     dnsmasq \
         --log-queries \
-        --log-facility=DAEMON \
+        --log-facility="${DNSMASQ_LOG:-\-}" \
         --log-async=15 \
         --stop-dns-rebind \
         --bind-interfaces \
@@ -391,6 +394,8 @@ Env() {
 
     LOGS_ROOT="${HTTPD_ROOT}/logs"
 
+    DNSMASQ_LOG="${LOGS_ROOT}/dnsmasq.log"
+
     DNSMASQ_PID="${PID_ROOT}/dnsmasq.pid"
 
     HTTPD_PID="${PID_ROOT}/httpd.pid"
@@ -428,13 +433,19 @@ helpmenu
 
     if [ "${IS_CONTINUING}" -ne 0 ]; then
         if [[ -d "${HTTPD_ROOT}" ]]; then
-            echo "Ready to start. Continue?"
+            #echo "Ready to start. Continue?"
             select yn in "Yes" "No"; do
                 case $yn in
-                    Yes ) break;;
+                    Yes ) break ;;
                     No ) exit 66;;
+                    *)
+                        echo "Invalid entry."
+                        exit 1
+                        ;;
                 esac
+                echo "you chose $yn"
             done
+            [ "${#yn}" -eq 0 ] && exit
             printf 'Starting ...\n\n'
         else
             printf 'No container found. Aborting.\n\n'
@@ -472,13 +483,14 @@ helpmenu
 
     if [ "${IS_CONTINUING}" -ne 0 ]; then
         if [[ -d "${HTTPD_ROOT}" ]]; then
-            echo "Ready to stop. Continue?"
+            echo "Ready to stop."
             select yn in "Yes" "No"; do
                 case $yn in
                     Yes ) break;;
                     No ) exit 66;;
                 esac
             done
+            [ "${#yn}" -eq 0 ] && exit
             printf 'Stopping ...\n\n'
         else
             printf 'No container found. Aborting.\n\n'
@@ -585,13 +597,14 @@ helpmenu
 
     if [ "${IS_CONTINUING}" -ne 0 ]; then
         if [[ -d "${HTTPD_ROOT}" ]]; then
-            echo "Ready to test. Continue?"
+            echo "Ready to test."
             select yn in "Yes" "No"; do
                 case $yn in
                     Yes ) break;;
                     No ) exit 66;;
                 esac
             done
+            [ "${#yn}" -eq 0 ] && exit
             printf 'Testing ...\n\n'
         else
             printf 'No container found. Aborting.\n\n'
@@ -751,22 +764,24 @@ Build() {
     HTTPD_ROOT="${INSTALL_ROOT}/HTTP_BYOB"
 
     if [[ ! -d "${HTTPD_ROOT}" ]]; then
-        echo "Ready to scafffold. Continue?"
+        echo "Ready to scafffold."
         select yn in "Yes" "No"; do
             case $yn in
                 Yes ) break;;
                 No ) exit 66;;
             esac
         done
+        [ "${#yn}" -eq 0 ] && exit
         printf 'Scaffolding ...\n\n'
     else
-        printf 'Build exists already. Continue?\n'
+        printf 'Build exists already.\n'
         select yn in "Yes" "No"; do
             case $yn in
                 Yes ) break;;
                 No ) echo "Aborting"; exit 66;;
             esac
         done
+        [ "${#yn}" -eq 0 ] && exit
     fi
 
     if ! mkdir -p "${HTTPD_DOCUMENT_ROOT}"; then
@@ -817,6 +832,7 @@ http-byob()
             Listen "${@}"
             ;;
         clean)
+            # PID files are removed automatically, though needed if catastrophe
             HTTPD_ROOT="${2}"
             Env
             Stop "${@}"
