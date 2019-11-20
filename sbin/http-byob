@@ -918,17 +918,10 @@ http-byob() {
     "${!func_reflection}" "${*}"
 }
 
-
-# DEFAULTS
-DNS_PORT="${DNS_PORT:=53}"
-HTTPD_USER="${HTTPD_USER:=$USER}"
-
-# if [ "${IS_CONTINUING}" -ne 0 ]; then
-#     echo shit
 if ! isInstalled ;then
     printf 'Something is missing!\n\n'
     exit 1
 fi
 
-[[ $UID -eq 0 ]] && echo "${@}"
+[[ $UID -eq 0 ]] && printf 'Continuing with elevated privileges.\n\n'
 entry "${@}"
