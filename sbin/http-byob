@@ -80,7 +80,7 @@ declare -x PHPRC
 
 ##################################
 
-Clean() {
+_clean() {
     [ "${IS_HELP_MODE}" -eq 0 ] && helpful <<helpmenu
 Clean stuff.
 helpmenu
@@ -277,7 +277,7 @@ _HTTPD()
 }
 
 
-Listen()
+_listen()
 {
    [ "${IS_HELP_MODE}" -eq 0 ] && helpful <<'helpmenu'
 Stream netcat logs.
@@ -422,7 +422,7 @@ checkRoot() {
 }
 :
 # Start
-Start()
+_start()
 {
     [ "${IS_CONTINUING}" -eq 0 ] && printf 'Continuing ... \n\n'
 
@@ -475,7 +475,7 @@ helpmenu
 
 #
 # Stop
-Stop()
+_stop()
 {
     [ "${IS_CONTINUING}" -eq 0 ] && printf 'Continuing ... \n\n'
     :
@@ -542,7 +542,7 @@ _Locate() {
     return 1
 }
 
-Restart()
+_restart()
 {
     [ "${IS_HELP_MODE}" -eq 0 ] && helpful <<helpmenu
 Restart processes.
@@ -591,7 +591,7 @@ helpmenu
     fi
 }
 
-Test()
+_test()
 {
     [ "${IS_CONTINUING}" -eq 0 ] && printf 'Continuing ... \n\n'
 
@@ -666,7 +666,7 @@ helpmenu
 }
 
 
-Status() {
+_status() {
     [ "${IS_HELP_MODE}" -eq 0 ] && helpful <<helpmenu
 Dislay the status of various processes.
 helpmenu
@@ -743,7 +743,7 @@ FetchConfigs() {
     done < <(printf '%s\n' "${FILES[@]}")
 }
 :
-Build() {
+_build() {
     INSTALL_ROOT="$(dirname "${HTTPD_ROOT:?}")"
     if [[ ! -d "${INSTALL_ROOT}" ]]; then
         printf 'The install root %s does not exist\n\n' "${INSTALL_ROOT}"
@@ -789,7 +789,11 @@ Build() {
 }
 
 entry(){
-    [[ ! "${1}" == 'Test' ]] && http-byob "${@}"
+    [[ ! "${1}" == '_test' ]] && http-byob "${@}"
+}
+
+_help() {
+    printf 'Whoa ... dude. Mind blowing stuff\n\n'
 }
 
 declare -x func_pass
@@ -819,47 +823,47 @@ http-byob() {
                 ;;
             build|scaffold)
                 func_pass='build'
-                func_reference=Build
+                func_reference=_build
                 func_reflection=func_reference
                 ;;
             start)
                 func_pass='start'
-                func_reference=Start
+                func_reference=_start
                 func_reflection=func_reference
                 ;;
             stop)
                 func_pass='stop'
-                func_reference=Stop
+                func_reference=_stop
                 func_reflection=func_reference
                 ;;
             restart)
                 func_pass='restart'
-                func_reference=Restart
+                func_reference=_restart
                 func_reflection=func_reference
                 ;;
             test)
                 func_pass='test'
-                func_reference=Test
+                func_reference=_test
                 func_reflection=func_reference
                 ;;
             listen|watch)
                 func_pass='listen'
-                func_reference=Listen
+                func_reference=_listen
                 func_reflection=func_reference
                 ;;
             clean)
                 func_pass='clean'
-                func_reference=Clean
+                func_reference=_clean
                 func_reflection=func_reference
                 ;;
             status)
                 func_pass='status'
-                func_reference=Status
+                func_reference=_status
                 func_reflection=func_reference
                 ;;
             help)
                 IS_HELP_MODE=0
-                "${2}"
+                "_${2}"
                 exit
                 exit 69
                 ;;
