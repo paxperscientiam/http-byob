@@ -161,14 +161,6 @@ title ()
     echo -ne "\\033]0;$*\\007"
 }
 :
-Destroy() {
-    tput rmcup
-    killall nc
-    :
-    title http-byob
-}
-trap Destroy SIGINT SIGQUIT
-:
 Msg() {
     printf '%s\n\n' "${1:-... exiting.}"
     [[ "${#2}" -gt 0 ]] && exit "${2}"
@@ -383,15 +375,9 @@ Env() {
         HTTPD_ROOT="${CONTAINER_NAME}"
         CONTAINER_NAME="${_CONTAINER_NAME}"
     else
-        # not given a path, just a name
-        echo 'just a name given'
         HTTPD_ROOT="${HTTPD_ROOT}/${_CONTAINER_NAME}"
         CONTAINER_NAME="${_CONTAINER_NAME}"
     fi
-
-
-    echo "PROJECT ROOT PATH: $HTTPD_ROOT"
-    echo "CONTAINER NAME: $CONTAINER_NAME"
 
     # exit 66
     # # define and update values here
@@ -420,8 +406,12 @@ Env() {
 
     #HTTPD_ROOT=$(perl -MFile -MCwd -e 'print File::Spec->tmpdir(),qq<\n>')
     #echo "abs is $HTTPD_ROOT"
-    HTTPD_ROOT=$(perl -MFile::Spec -e 'printf File::Spec->canonpath($ENV{HTTPD_ROOT}),qq<\n>')
-    #echo "abs: $HTTPD_ROOT"
+
+    if [[ "$1" != /* ]]; then
+        HTTPD_ROOT="${PWD}/${HTTPD_ROOT}"
+    fi
+    echo "CONTAINTER: ${CONTAINER_NAME}"
+    echo "PROJECT PATH: ${HTTPD_ROOT}"
 
     HTTPD_DOCUMENT_ROOT="${HTTPD_ROOT}/www"
 
@@ -805,7 +795,7 @@ Build() {
     fi
 
     if [[ ! -d "${HTTPD_ROOT}" ]]; then
-        echo "Ready to scafffold."
+        echo "Ready to scaffold."
         select yn in "Yes" "No"; do
             case $yn in
                 Yes ) break;;
@@ -863,32 +853,57 @@ http-byob()
             Start "${@}"
             ;;
         stop)
-            HTTPD_ROOT="${2}"
+            if [[ "${2}" == '--root' ]]; then
+                CONTAINER_NAME="${3}"
+            else
+                HTTPD_ROOT="${2}"
+            fi
             Env
             Stop "${@}"
             ;;
         restart)
-            HTTPD_ROOT="${2}"
+            if [[ "${2}" == '--root' ]]; then
+                CONTAINER_NAME="${3}"
+            else
+                HTTPD_ROOT="${2}"
+            fi
             Env
             Restart "${@}"
             ;;
         test)
-            HTTPD_ROOT="${2}"
+            if [[ "${2}" == '--root' ]]; then
+                CONTAINER_NAME="${3}"
+            else
+                HTTPD_ROOT="${2}"
+            fi
             Env
             Test "${@}"
             ;;
         listen|watch)
+            if [[ "${2}" == '--root' ]]; then
+                CONTAINER_NAME="${3}"
+            else
+                HTTPD_ROOT="${2}"
+            fi
             Listen "${@}"
             ;;
         clean)
             # PID files are removed automatically, though needed if catastrophe
-            HTTPD_ROOT="${2}"
+            if [[ "${2}" == '--root' ]]; then
+                CONTAINER_NAME="${3}"
+            else
+                HTTPD_ROOT="${2}"
+            fi
             Env
             Stop "${@}"
             Clean "${@}"
             ;;
         status)
-            HTTPD_ROOT="${2}"
+            if [[ "${2}" == '--root' ]]; then
+                CONTAINER_NAME="${3}"
+            else
+                HTTPD_ROOT="${2}"
+            fi
             Env
             Status "${@}"
             ;;
@@ -923,6 +938,5 @@ if ! isInstalled ;then
     printf 'Something is missing!\n\n'
     exit 1
 fi
-#fi
 
 entry "${@}"
