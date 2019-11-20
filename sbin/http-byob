@@ -4,6 +4,8 @@ shopt -s nullglob
 unset CDPATH
 #set -x
 :
+PS3="Please choose an option: "
+:
 ###### STATE
 declare -i IS_INSTALLED=1
 declare -i IS_CONTINUING="${IS_CONTINUING:-1}"
@@ -28,10 +30,12 @@ declare -xr HTTPD_SERVER_NAME="localhost"
 
 declare -xr HOSTNAME="${HOSTNAME}"
 
+declare -x START_MASQ=2
+declare -x START_HTTPD=2
+
 # will only override what is allowed
 # source http_byob.cfg >/dev/null 2>&1
 
-PS3="Please choose an option: "
 
 declare PHP_VERSION
 if ! PHP_VERSION=$(php -r "echo PHP_MAJOR_VERSION.PHP_MINOR_VERSION;") >/dev/null 2>&1; then
@@ -48,9 +52,6 @@ declare -x HTTP_SERVER_ROOT
 
 declare -x HTTPD_ROOT
 declare -x CONTAINER_NAME
-
-declare -x START_MASQ=2
-declare -x START_HTTPD=2
 
 # Apache says it NOT include trailing slash
 declare -x HTTPD_DOCUMENT_ROOT
@@ -75,19 +76,6 @@ declare -x DNSMASQ_CONFIG
 
 
 declare -x PHPRC
-
-declare -A D
-export D
-D[proc]='dnsmasq'
-D[port]="${DNS_PORT}"
-D[pid]="${DNSMASQ_PID}"
-
-declare -A H
-export H
-H[proc]='httpd'
-H[port]="${HTTPD_PORT}"
-H[pid]="${HTTPD_PID}"
-
 
 ##################################
 
@@ -702,19 +690,9 @@ helpmenu
     title status
 
 
-    local pid
+    local PID
 
-    #   tput smcup
-
-    #   tput sgr0 # turn off text attributes
     ps -o "ppid,pid,etime,user,comm" | head -n 1 | column -t
-
-    # while IFS= read -r line; do
-    #     tput sc
-
-    # [[ -r "${DNSMASQ_PID}" ]] && tmp1=$(< "${DNSMASQ_PID}")
-    # mapfile -t tmp2 < <(pgrep httpd)
-    # proc=("${tmp1}" "${tmp2[*]}")
 
     if _Locate "${DNSMASQ_PID}"; then
         PID=$(<"${DNSMASQ_PID}")
