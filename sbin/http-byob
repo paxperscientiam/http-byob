@@ -407,7 +407,7 @@ Env() {
     #HTTPD_ROOT=$(perl -MFile -MCwd -e 'print File::Spec->tmpdir(),qq<\n>')
     #echo "abs is $HTTPD_ROOT"
 
-    if [[ "$1" != /* ]]; then
+    if [[ "${HTTPD_ROOT}" != /* ]]; then
         HTTPD_ROOT="${PWD}/${HTTPD_ROOT}"
     fi
     echo "CONTAINTER: ${CONTAINER_NAME}"
