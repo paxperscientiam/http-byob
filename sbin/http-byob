@@ -47,6 +47,7 @@ fi
 declare -x HTTP_SERVER_ROOT
 
 declare -x HTTPD_ROOT
+declare -x CONTAINER_NAME
 
 # Apache says it NOT include trailing slash
 declare -x HTTPD_DOCUMENT_ROOT
@@ -362,26 +363,61 @@ helpmenu
 
 Env() {
     local _HTTPD_ROOT
-    local CONTAINER_NAME="${CONTAINER_NAME:-HTTP_BYOB}"
-    echo $CONTAINER_NAME
-    exit
-    # define and update values here
-    if [ "${#INSTALL_ROOT}" -gt 0 ]; then
-        HTTPD_ROOT="${INSTALL_ROOT}/${CONTAINER_NAME}"
-    elif [[ $(basename "${HTTPD_ROOT}") == 'HTTP_BYOB' ]]; then
-        :
-        echo shit
-    elif [ "${#HTTPD_ROOT}" -gt 0 ]; then
-        HTTPD_ROOT="${HTTPD_ROOT}/HTTP_BYOB"
+    local _CONTAINER_NAME
+
+    export __CONTAINER_NAME="${CONTAINER_NAME:-HTTP_BYOB}"
+
+    # clean up path
+    CONTAINER_NAME=$(perl -MFile::Spec -e 'printf File::Spec->canonpath($ENV{__CONTAINER_NAME}),qq<\n>')
+
+
+    CONTAINER_NAME=$(perl -MCwd -e 'printf Cwd::abs_path($ENV{CONTAINER_NAME}),qq<\n>')
+
+    _CONTAINER_NAME=$(basename "${CONTAINER_NAME}")
+
+    if [[ "${__CONTAINER_NAME}" =~ /|\. ]]; then
+        # hTTPD_ROOT is the files containing path
+        HTTPD_ROOT="${CONTAINER_NAME}"
+        CONTAINER_NAME="${_CONTAINER_NAME}"
     else
-        _HTTPD_ROOT="$PWD/HTTP_BYOB"
+        # not given a path, just a name
+        echo 'just a name given'
+        HTTPD_ROOT="${PWD}/${_CONTAINER_NAME}"
+        CONTAINER_NAME="${_CONTAINER_NAME}"
     fi
+
+    echo "PROJECT ROOT PATH: $HTTPD_ROOT"
+    echo "CONTAINER NAME: $CONTAINER_NAME"
+
+    exit 66
+    # define and update values here
+    if [ "$(basename "${_HTTPD_ROOT^^}")" == "${CONTAINER_NAME^^}" ]; then
+        echo 'option 1'
+        HTTPD_ROOT="${_HTTPD_ROOT}"
+    elif [ "${#INSTALL_ROOT}" -gt 0 ] && [ "${#CONTAINER_NAME}" -gt 0 ]; then
+        echo 'option 2'
+        HTTPD_ROOT="${INSTALL_ROOT}/${CONTAINER_NAME}"
+    elif [[ $(basename "${HTTPD_ROOT^^}") == 'HTTP_BYOB' ]]; then
+        :
+        echo 'option 3'
+    elif [ "${#HTTPD_ROOT}" -gt 0 ]; then
+        HTTPD_ROOT="${HTTPD_ROOT}/${CONTAINER_NAME}"
+        echo 'option 4'
+    elif [ "${#CONTAINER_NAME}" -gt 0 ]; then
+        HTTPD_ROOT="${PWD}/${CONTAINER_NAME}"
+        echo 'option 5'
+    else
+        echo 'option 6'
+    fi
+
+    # define and update values here
 
     HTTPD_USER=$(logname)
 
-    HTTPD_ROOT="${HTTPD_ROOT:-${_HTTPD_ROOT:?}}"
-
-    HTTPD_ROOT=$(perl -MCwd -e 'print Cwd::abs_path shift' "${HTTPD_ROOT}")
+    #HTTPD_ROOT=$(perl -MFile -MCwd -e 'print File::Spec->tmpdir(),qq<\n>')
+    #echo "abs is $HTTPD_ROOT"
+    HTTPD_ROOT=$(perl -MFile::Spec -e 'printf File::Spec->canonpath($ENV{HTTPD_ROOT}),qq<\n>')
+    #echo "abs: $HTTPD_ROOT"
 
     HTTPD_DOCUMENT_ROOT="${HTTPD_ROOT}/www"
 
@@ -418,7 +454,7 @@ Env() {
 checkRoot() {
     :
 }
-
+:
 # Start
 Start()
 {
@@ -807,7 +843,11 @@ http-byob()
 {
     case $1 in
         build|scaffold)
-            INSTALL_ROOT="${2}"
+            if [[ "${2}" == '--root' ]]; then
+                CONTAINER_NAME="${3}"
+            else
+                HTTPD_ROOT="${2}"
+            fi
             Env
             Build "${@}"
             ;;
