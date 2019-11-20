@@ -49,6 +49,9 @@ declare -x HTTP_SERVER_ROOT
 declare -x HTTPD_ROOT
 declare -x CONTAINER_NAME
 
+declare -x START_MASQ=2
+declare -x START_HTTPD=2
+
 # Apache says it NOT include trailing slash
 declare -x HTTPD_DOCUMENT_ROOT
 #
@@ -170,7 +173,11 @@ Msg() {
 :
 # permission check
 gate() {
-    [[ $UID -eq 0 ]] || exec sudo IS_CONTINUING=0 "${0}" "${@}"
+    [ "${UID}" -ne 0 ] && Msg "Run with sudo!" && exit 1
+    return 0
+    #[[ $UID -eq 0 ]]
+    # || exec sudo \
+     #                        IS_CONTINUING=0 "${0}" "${*}"
 }
 
 
@@ -183,35 +190,43 @@ isInstalled() {
     ########################
     # FIND EXECUTABLES
     ########################
+    printf 'Verifying that executables are installed ...\n'
+    printf ' * httpd '
     if HTTPD=$(command -v httpd) >/dev/null 2>&1; then
         HTTP_SERVER_ROOT=$(dirname "$(dirname "${HTTPD}")")
-        printf 'Found httpd here: %s\n\n' "${HTTPD}"
+        #printf 'Found httpd here: %s\n\n' "${HTTPD}"
+        printf '✓\n'
     else
-        printf 'Apache httpd not found!\n\n'
+        printf '✗\n'
         exit 1
     fi
 
-
+    printf ' * apachectl '
     if APACHECTL=$(command -v apachectl) >/dev/null 2>&1; then
-        printf 'Found apachectl here: %s\n\n' "${APACHECTL}"
+        printf '✓\n'
     else
-        printf 'apachectl httpd not found!\n\n'
-        exit 2
+        printf '✗\n'
+        exit 1
     fi
 
+    printf ' * php '
     if PHP=$(command -v php) >/dev/null 2>&1; then
-        printf 'Found httpd here: %s\n\n' "${PHP}"
+        printf '✓\n'
     else
-        printf 'php not found!\n\n'
-        exit 3
+        printf '✗\n'
+        exit 1
     fi
 
+    printf ' * dnsmasq '
     if DNSMASQ=$(command -v dnsmasq) >/dev/null 2>&1; then
-        printf 'Found dnsmasq here: %s\n\n' "${DNSMASQ}"
+        printf '✓\n'
     else
-        printf 'DNSMASQ not found!\n\n'
-        exit 4
+        printf '✗\n'
+        exit 1
     fi
+
+    printf '\n\n'
+
     IS_INSTALLED=0
 }
 :
@@ -251,7 +266,7 @@ MASQ()
     # )
     # #&
     # #disown %1
-    printf '%s\n' $'Starting `dnsmasq`.'n
+    printf '%s\n' $'Starting `dnsmasq`.'
 }
 #
 _HTTPD()
@@ -357,7 +372,7 @@ Env() {
     local _HTTPD_ROOT
     local _CONTAINER_NAME
 
-    export __CONTAINER_NAME="${CONTAINER_NAME:-HTTP_BYOB}"
+    export __CONTAINER_NAME="${CONTAINER_NAME}"
     export __HTTPD_ROOT="${HTTPD_ROOT:-./}"
 
     # clean up path
@@ -376,29 +391,6 @@ Env() {
         HTTPD_ROOT="${HTTPD_ROOT}/${_CONTAINER_NAME}"
         CONTAINER_NAME="${_CONTAINER_NAME}"
     fi
-
-    # exit 66
-    # # define and update values here
-    # if [ "$(basename "${_HTTPD_ROOT^^}")" == "${CONTAINER_NAME^^}" ]; then
-    #     echo 'option 1'
-    #     HTTPD_ROOT="${_HTTPD_ROOT}"
-    # elif [ "${#INSTALL_ROOT}" -gt 0 ] && [ "${#CONTAINER_NAME}" -gt 0 ]; then
-    #     echo 'option 2'
-    #     HTTPD_ROOT="${INSTALL_ROOT}/${CONTAINER_NAME}"
-    # elif [[ $(basename "${HTTPD_ROOT^^}") == 'HTTP_BYOB' ]]; then
-    #     :
-    #     echo 'option 3'
-    # elif [ "${#HTTPD_ROOT}" -gt 0 ]; then
-    #     HTTPD_ROOT="${HTTPD_ROOT}/${CONTAINER_NAME}"
-    #     echo 'option 4'
-    # elif [ "${#CONTAINER_NAME}" -gt 0 ]; then
-    #     HTTPD_ROOT="${PWD}/${CONTAINER_NAME}"
-    #     echo 'option 5'
-    # else
-    #     echo 'option 6'
-    # fi
-    #
-    # define and update values here
 
     HTTPD_USER=$(logname)
 
@@ -448,8 +440,6 @@ checkRoot() {
 # Start
 Start()
 {
-    echo $@
-    exit 90
     [ "${IS_CONTINUING}" -eq 0 ] && printf 'Continuing ... \n\n'
 
     [[ $2 == 'help' ]] && helpful <<helpmenu
@@ -460,21 +450,16 @@ EXAMPLE:
  $ sbin/http-body start -H  # launch \`httpd\`
 helpmenu
 
-    if ! isValid "${3}"; then exit $?; fi
-
     if [ "${IS_CONTINUING}" -ne 0 ]; then
         if [[ -d "${HTTPD_ROOT}" ]]; then
-            #echo "Ready to start. Continue?"
+            echo "Ready to start?"
             select yn in "Yes" "No"; do
                 case $yn in
                     Yes ) break ;;
                     No ) exit 66;;
                     *)
-                        echo "Invalid entry."
-                        exit 1
-                        ;;
+                        printf 'Invalid entry (%s)!\n\n' "${REPLY}"
                 esac
-                echo "you chose $yn"
             done
             [ "${#yn}" -eq 0 ] && exit
             printf 'Starting ...\n\n'
@@ -487,13 +472,21 @@ helpmenu
     IS_CONTINUING=0
     gate "${@}"; shift
 
-    if [ -z "${2}" ] || [ "${2}" == '-D' ]; then
+
+    if [ "${START_MASQ}" -eq 0 ]; then
+        echo "MASQ"
         MASQ
     fi
 
-    if [ -z "${2}" ] || [ "${2}" == '-H' ]; then
+    if [ "${START_HTTPD}" -eq 0 ]; then
+        echo "HTTPD"
         _HTTPD
     fi
+
+
+    # if [ -z "${2}" ] || [ "${2}" == '-H' ]; then
+    #     _HTTPD
+    # fi
 }
 
 #
@@ -509,8 +502,6 @@ EXAMPLE:
  $ sbin/http-byob stop -D  # Stop `dnsmasq`
  $ sbin/http-byob stop -H  # Stop `httpd`
 helpmenu
-
-    if ! isValid "${3}"; then exit $?; fi
 
     if [ "${IS_CONTINUING}" -ne 0 ]; then
         if [[ -d "${HTTPD_ROOT}" ]]; then
@@ -531,7 +522,7 @@ helpmenu
 
     IS_CONTINUING=0
     gate "${@}"; shift
-    if [ -z "${2}" ] || [ "${2}" == '-D' ]; then
+    if [ "${START_MASQ}" -eq 0 ]; then
         if [[ -r "${DNSMASQ_PID}" ]]; then
             z=$(<"${DNSMASQ_PID}")
             pkill -TERM -F "${DNSMASQ_PID}" >/dev/null 2>&1 &
@@ -545,7 +536,7 @@ helpmenu
         :
     fi
 
-    if [ -z "${2}" ] || [ "${2}" == '-H' ]; then
+    if [ "${START_HTTPD}" -eq 0 ]; then
         if [[ -r "${HTTPD_PID}" ]]; then
             z=$(<"${HTTPD_PID}")
             pkill -TERM -F "${HTTPD_PID}" >/dev/null 2>&1 &
@@ -812,7 +803,7 @@ Build() {
         done
         [ "${#yn}" -eq 0 ] && exit
     fi
-
+    echo "HDR ${HTTPD_DOCUMENT_ROOT}"
     if ! mkdir -p "${HTTPD_DOCUMENT_ROOT}"; then
         exit $?
     fi
@@ -829,6 +820,7 @@ entry(){
     [[ ! "${1}" == 'Test' ]] && http-byob "${@}"
 }
 
+declare -x func_pass
 http-byob() {
     local options=("${@}")
     local opt_next
@@ -838,121 +830,67 @@ http-byob() {
     local func_reference
     local func_reflection
     for opt in "${options[@]}"; do
+        :
         _index=$(( index + 1 ))
         value="${options[$_index]}"
+        :
         case "${opt}" in
-            --root)
-                CONTAINER_NAME="${value}"
+            --root|--container)
+                CONTAINER_NAME="${value:-HTTP_BYOB}"
+                break
+                ;;
+            -D)
+                START_MASQ=0
+                ;;
+            -H)
+                START_HTTPD=0
                 ;;
             build|scaffold)
+                func_pass='build'
                 func_reference=Build
                 func_reflection=func_reference
-                # _index=$(( index + 1 ))
-                # opt_next="${options[$_index]}"
-                # if [[ "${opt_next}" == '--root' ]]; then
-                #     CONTAINER_NAME="${3}"
-                # else
-                #     HTTPD_ROOT="${2}"
-                # fi
-                # exit 69
-
-                # CONTAINER_NAME="${options[$_index]}"
-                # _index=$(( index++ ))
-                # func_reference=Build
-                # func_reflection=func_reference
-                # if [ "${#CONTAINER_NAME}" -gt 0 ]; then
-                #     CONTAINER_NAME="${3}"
-                # else
-                #     HTTPD_ROOT="${2}"
-                # fi
-                #Env
-                # Build "${@}"
                 ;;
             start)
-                func_reference=Build
+                func_pass='start'
+                func_reference=Start
                 func_reflection=func_reference
-                if [[ "${2}" == '--root' ]]; then
-                    CONTAINER_NAME="${3}"
-                    shift 2
-                else
-                    HTTPD_ROOT="${2}"
-                fi
-                #Env
-                # Start "${@}"
                 ;;
             stop)
-                func_reference=Build
+                func_pass='stop'
+                func_reference=Stop
                 func_reflection=func_reference
-                if [[ "${2}" == '--root' ]]; then
-                    CONTAINER_NAME="${3}"
-                else
-                    HTTPD_ROOT="${2}"
-                fi
-                Env
-                #Stop "${@}"
                 ;;
             restart)
-                func_reference=Build
+                func_pass='restart'
+                func_reference=Restart
                 func_reflection=func_reference
-                if [[ "${2}" == '--root' ]]; then
-                    CONTAINER_NAME="${3}"
-                else
-                    HTTPD_ROOT="${2}"
-                fi
-                Env
-                #Restart "${@}"
                 ;;
             test)
-                func_reference=Build
+                func_pass='test'
+                func_reference=Test
                 func_reflection=func_reference
-                if [[ "${2}" == '--root' ]]; then
-                    CONTAINER_NAME="${3}"
-                else
-                    HTTPD_ROOT="${2}"
-                fi
-                Env
-                #Test "${@}"
                 ;;
             listen|watch)
-                func_reference=Build
+                func_pass='listen'
+                func_reference=Listen
                 func_reflection=func_reference
-                if [[ "${2}" == '--root' ]]; then
-                    CONTAINER_NAME="${3}"
-                else
-                    HTTPD_ROOT="${2}"
-                fi
-                #Listen "${@}"
                 ;;
             clean)
-                func_reference=Build
+                func_pass='clean'
+                func_reference=Clean
                 func_reflection=func_reference
-                # PID files are removed automatically, though needed if catastrophe
-                if [[ "${2}" == '--root' ]]; then
-                    CONTAINER_NAME="${3}"
-                else
-                    HTTPD_ROOT="${2}"
-                fi
-                Env
-                # Stop "${@}"
-                #Clean "${@}"
                 ;;
             status)
-                func_reference=Build
+                func_pass='status'
+                func_reference=Status
                 func_reflection=func_reference
-                if [[ "${2}" == '--root' ]]; then
-                    CONTAINER_NAME="${3}"
-                else
-                    HTTPD_ROOT="${2}"
-                fi
-                Env
-                #Status "${@}"
                 ;;
             help)
-                # shift
-                # [[ "${#1}" -eq 0 ]] && exit
-                # eval sbin/http-byob "${1}" help
-                echo help
-                exit
+                exit 69
+                ;;
+            check)
+                isInstalled
+                exit 0
                 ;;
             alien)
                 compgen -A function ;exit
@@ -963,25 +901,21 @@ http-byob() {
             __)
                 __
                 ;;
-            # *)
-            #     Msg "Unknown option: try 'start', 'stop', 'restart', 'test', 'listen', 'clean', 'help'" 1
-            #     ;;
+            *)
+                Msg "Unknown option: try 'start', 'stop', 'restart', 'test', 'listen', 'clean', 'help'" 1
+                ;;
         esac
-
         (( index++ ))
     done
+
+
     if [ "${#CONTAINER_NAME}" -eq 0 ]; then
-        HTTPD_ROOT="${value}"
+        echo 'YOU MUST SPECIFY CONTAINER WITH --root|--container'
+        exit 1
     fi
 
-    echo "loop finished"
-    echo "cont: ${CONTAINER_NAME}"
-    echo "root: ${HTTPD_ROOT}"
-    Env
-     echo "loop finished"
-    echo "cont: ${CONTAINER_NAME}"
-    echo "root: ${HTTPD_ROOT}"
-
+    Env  # define environment
+    "${!func_reflection}" "${*}"
 }
 
 
@@ -996,4 +930,5 @@ if ! isInstalled ;then
     exit 1
 fi
 
+[[ $UID -eq 0 ]] && echo "${@}"
 entry "${@}"
