@@ -366,14 +366,17 @@ Env() {
     local _CONTAINER_NAME
 
     export __CONTAINER_NAME="${CONTAINER_NAME:-HTTP_BYOB}"
+    export __HTTPD_ROOT="${HTTPD_ROOT:-./}"
+
+
 
     # clean up path
     CONTAINER_NAME=$(perl -MFile::Spec -e 'printf File::Spec->canonpath($ENV{__CONTAINER_NAME}),qq<\n>')
-
-
-    CONTAINER_NAME=$(perl -MCwd -e 'printf Cwd::abs_path($ENV{CONTAINER_NAME}),qq<\n>')
-
+    #CONTAINER_NAME=$(perl -MCwd -e 'printf Cwd::abs_path($ENV{CONTAINER_NAME}),qq<\n>')
     _CONTAINER_NAME=$(basename "${CONTAINER_NAME}")
+
+    HTTPD_ROOT=$(perl -MFile::Spec -e 'printf File::Spec->canonpath($ENV{__HTTPD_ROOT}),qq<\n>')
+    #HTTPD_ROOT=$(perl -MCwd -e 'printf Cwd::abs_path($ENV{HTTPD_ROOT}),qq<\n>')
 
     if [[ "${__CONTAINER_NAME}" =~ /|\. ]]; then
         # hTTPD_ROOT is the files containing path
@@ -382,34 +385,35 @@ Env() {
     else
         # not given a path, just a name
         echo 'just a name given'
-        HTTPD_ROOT="${PWD}/${_CONTAINER_NAME}"
+        HTTPD_ROOT="${HTTPD_ROOT}/${_CONTAINER_NAME}"
         CONTAINER_NAME="${_CONTAINER_NAME}"
     fi
+
 
     echo "PROJECT ROOT PATH: $HTTPD_ROOT"
     echo "CONTAINER NAME: $CONTAINER_NAME"
 
-    exit 66
-    # define and update values here
-    if [ "$(basename "${_HTTPD_ROOT^^}")" == "${CONTAINER_NAME^^}" ]; then
-        echo 'option 1'
-        HTTPD_ROOT="${_HTTPD_ROOT}"
-    elif [ "${#INSTALL_ROOT}" -gt 0 ] && [ "${#CONTAINER_NAME}" -gt 0 ]; then
-        echo 'option 2'
-        HTTPD_ROOT="${INSTALL_ROOT}/${CONTAINER_NAME}"
-    elif [[ $(basename "${HTTPD_ROOT^^}") == 'HTTP_BYOB' ]]; then
-        :
-        echo 'option 3'
-    elif [ "${#HTTPD_ROOT}" -gt 0 ]; then
-        HTTPD_ROOT="${HTTPD_ROOT}/${CONTAINER_NAME}"
-        echo 'option 4'
-    elif [ "${#CONTAINER_NAME}" -gt 0 ]; then
-        HTTPD_ROOT="${PWD}/${CONTAINER_NAME}"
-        echo 'option 5'
-    else
-        echo 'option 6'
-    fi
-
+    # exit 66
+    # # define and update values here
+    # if [ "$(basename "${_HTTPD_ROOT^^}")" == "${CONTAINER_NAME^^}" ]; then
+    #     echo 'option 1'
+    #     HTTPD_ROOT="${_HTTPD_ROOT}"
+    # elif [ "${#INSTALL_ROOT}" -gt 0 ] && [ "${#CONTAINER_NAME}" -gt 0 ]; then
+    #     echo 'option 2'
+    #     HTTPD_ROOT="${INSTALL_ROOT}/${CONTAINER_NAME}"
+    # elif [[ $(basename "${HTTPD_ROOT^^}") == 'HTTP_BYOB' ]]; then
+    #     :
+    #     echo 'option 3'
+    # elif [ "${#HTTPD_ROOT}" -gt 0 ]; then
+    #     HTTPD_ROOT="${HTTPD_ROOT}/${CONTAINER_NAME}"
+    #     echo 'option 4'
+    # elif [ "${#CONTAINER_NAME}" -gt 0 ]; then
+    #     HTTPD_ROOT="${PWD}/${CONTAINER_NAME}"
+    #     echo 'option 5'
+    # else
+    #     echo 'option 6'
+    # fi
+    #
     # define and update values here
 
     HTTPD_USER=$(logname)
@@ -789,7 +793,7 @@ FetchConfigs() {
 }
 :
 Build() {
-    INSTALL_ROOT="${INSTALL_ROOT:?}"
+    INSTALL_ROOT="$(dirname "${HTTPD_ROOT:?}")"
     if [[ ! -d "${INSTALL_ROOT}" ]]; then
         printf 'The install root %s does not exist\n\n' "${INSTALL_ROOT}"
         exit 1
@@ -799,8 +803,6 @@ Build() {
         printf 'The user %s does not have permission to scaffold within the directory %s. Please try another.\n\n' "${USER}" "${INSTALL_ROOT}"
         exit 1
     fi
-
-    HTTPD_ROOT="${INSTALL_ROOT}/HTTP_BYOB"
 
     if [[ ! -d "${HTTPD_ROOT}" ]]; then
         echo "Ready to scafffold."
