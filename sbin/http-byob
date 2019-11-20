@@ -360,8 +360,6 @@ Env() {
     export __CONTAINER_NAME="${CONTAINER_NAME:-HTTP_BYOB}"
     export __HTTPD_ROOT="${HTTPD_ROOT:-./}"
 
-
-
     # clean up path
     CONTAINER_NAME=$(perl -MFile::Spec -e 'printf File::Spec->canonpath($ENV{__CONTAINER_NAME}),qq<\n>')
     #CONTAINER_NAME=$(perl -MCwd -e 'printf Cwd::abs_path($ENV{CONTAINER_NAME}),qq<\n>')
@@ -410,8 +408,6 @@ Env() {
     if [[ "${HTTPD_ROOT}" != /* ]]; then
         HTTPD_ROOT="${PWD}/${HTTPD_ROOT}"
     fi
-    echo "CONTAINTER: ${CONTAINER_NAME}"
-    echo "PROJECT PATH: ${HTTPD_ROOT}"
 
     HTTPD_DOCUMENT_ROOT="${HTTPD_ROOT}/www"
 
@@ -452,6 +448,8 @@ checkRoot() {
 # Start
 Start()
 {
+    echo $@
+    exit 90
     [ "${IS_CONTINUING}" -eq 0 ] && printf 'Continuing ... \n\n'
 
     [[ $2 == 'help' ]] && helpful <<helpmenu
@@ -831,100 +829,159 @@ entry(){
     [[ ! "${1}" == 'Test' ]] && http-byob "${@}"
 }
 
-http-byob()
-{
-    case $1 in
-        build|scaffold)
-            if [[ "${2}" == '--root' ]]; then
-                CONTAINER_NAME="${3}"
-            else
-                HTTPD_ROOT="${2}"
-            fi
-            Env
-            Build "${@}"
-            ;;
-        start)
-            if [[ "${2}" == '--root' ]]; then
-                CONTAINER_NAME="${3}"
-            else
-                HTTPD_ROOT="${2}"
-            fi
-            Env
-            Start "${@}"
-            ;;
-        stop)
-            if [[ "${2}" == '--root' ]]; then
-                CONTAINER_NAME="${3}"
-            else
-                HTTPD_ROOT="${2}"
-            fi
-            Env
-            Stop "${@}"
-            ;;
-        restart)
-            if [[ "${2}" == '--root' ]]; then
-                CONTAINER_NAME="${3}"
-            else
-                HTTPD_ROOT="${2}"
-            fi
-            Env
-            Restart "${@}"
-            ;;
-        test)
-            if [[ "${2}" == '--root' ]]; then
-                CONTAINER_NAME="${3}"
-            else
-                HTTPD_ROOT="${2}"
-            fi
-            Env
-            Test "${@}"
-            ;;
-        listen|watch)
-            if [[ "${2}" == '--root' ]]; then
-                CONTAINER_NAME="${3}"
-            else
-                HTTPD_ROOT="${2}"
-            fi
-            Listen "${@}"
-            ;;
-        clean)
-            # PID files are removed automatically, though needed if catastrophe
-            if [[ "${2}" == '--root' ]]; then
-                CONTAINER_NAME="${3}"
-            else
-                HTTPD_ROOT="${2}"
-            fi
-            Env
-            Stop "${@}"
-            Clean "${@}"
-            ;;
-        status)
-            if [[ "${2}" == '--root' ]]; then
-                CONTAINER_NAME="${3}"
-            else
-                HTTPD_ROOT="${2}"
-            fi
-            Env
-            Status "${@}"
-            ;;
-        help)
-            shift
-            [[ "${#1}" -eq 0 ]] && exit
-            eval sbin/http-byob "${1}" help
-            ;;
-        alien)
-            compgen -A function ;exit
-            check -H
-            echo $?
-            exit
-            ;;
-        __)
-            __
-            ;;
-        *)
-            Msg "Unknown option: try 'start', 'stop', 'restart', 'test', 'listen', 'clean', 'help'" 1
-            ;;
-    esac
+http-byob() {
+    local options=("${@}")
+    local opt_next
+    local value
+    local index=0
+    local _index
+    local func_reference
+    local func_reflection
+    for opt in "${options[@]}"; do
+        _index=$(( index + 1 ))
+        value="${options[$_index]}"
+        case "${opt}" in
+            --root)
+                CONTAINER_NAME="${value}"
+                ;;
+            build|scaffold)
+                func_reference=Build
+                func_reflection=func_reference
+                # _index=$(( index + 1 ))
+                # opt_next="${options[$_index]}"
+                # if [[ "${opt_next}" == '--root' ]]; then
+                #     CONTAINER_NAME="${3}"
+                # else
+                #     HTTPD_ROOT="${2}"
+                # fi
+                # exit 69
+
+                # CONTAINER_NAME="${options[$_index]}"
+                # _index=$(( index++ ))
+                # func_reference=Build
+                # func_reflection=func_reference
+                # if [ "${#CONTAINER_NAME}" -gt 0 ]; then
+                #     CONTAINER_NAME="${3}"
+                # else
+                #     HTTPD_ROOT="${2}"
+                # fi
+                #Env
+                # Build "${@}"
+                ;;
+            start)
+                func_reference=Build
+                func_reflection=func_reference
+                if [[ "${2}" == '--root' ]]; then
+                    CONTAINER_NAME="${3}"
+                    shift 2
+                else
+                    HTTPD_ROOT="${2}"
+                fi
+                #Env
+                # Start "${@}"
+                ;;
+            stop)
+                func_reference=Build
+                func_reflection=func_reference
+                if [[ "${2}" == '--root' ]]; then
+                    CONTAINER_NAME="${3}"
+                else
+                    HTTPD_ROOT="${2}"
+                fi
+                Env
+                #Stop "${@}"
+                ;;
+            restart)
+                func_reference=Build
+                func_reflection=func_reference
+                if [[ "${2}" == '--root' ]]; then
+                    CONTAINER_NAME="${3}"
+                else
+                    HTTPD_ROOT="${2}"
+                fi
+                Env
+                #Restart "${@}"
+                ;;
+            test)
+                func_reference=Build
+                func_reflection=func_reference
+                if [[ "${2}" == '--root' ]]; then
+                    CONTAINER_NAME="${3}"
+                else
+                    HTTPD_ROOT="${2}"
+                fi
+                Env
+                #Test "${@}"
+                ;;
+            listen|watch)
+                func_reference=Build
+                func_reflection=func_reference
+                if [[ "${2}" == '--root' ]]; then
+                    CONTAINER_NAME="${3}"
+                else
+                    HTTPD_ROOT="${2}"
+                fi
+                #Listen "${@}"
+                ;;
+            clean)
+                func_reference=Build
+                func_reflection=func_reference
+                # PID files are removed automatically, though needed if catastrophe
+                if [[ "${2}" == '--root' ]]; then
+                    CONTAINER_NAME="${3}"
+                else
+                    HTTPD_ROOT="${2}"
+                fi
+                Env
+                # Stop "${@}"
+                #Clean "${@}"
+                ;;
+            status)
+                func_reference=Build
+                func_reflection=func_reference
+                if [[ "${2}" == '--root' ]]; then
+                    CONTAINER_NAME="${3}"
+                else
+                    HTTPD_ROOT="${2}"
+                fi
+                Env
+                #Status "${@}"
+                ;;
+            help)
+                # shift
+                # [[ "${#1}" -eq 0 ]] && exit
+                # eval sbin/http-byob "${1}" help
+                echo help
+                exit
+                ;;
+            alien)
+                compgen -A function ;exit
+                check -H
+                echo $?
+                exit 69
+                ;;
+            __)
+                __
+                ;;
+            # *)
+            #     Msg "Unknown option: try 'start', 'stop', 'restart', 'test', 'listen', 'clean', 'help'" 1
+            #     ;;
+        esac
+
+        (( index++ ))
+    done
+    if [ "${#CONTAINER_NAME}" -eq 0 ]; then
+        HTTPD_ROOT="${value}"
+    fi
+
+    echo "loop finished"
+    echo "cont: ${CONTAINER_NAME}"
+    echo "root: ${HTTPD_ROOT}"
+    Env
+     echo "loop finished"
+    echo "cont: ${CONTAINER_NAME}"
+    echo "root: ${HTTPD_ROOT}"
+
 }
 
 
