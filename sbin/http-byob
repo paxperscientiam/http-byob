@@ -9,6 +9,7 @@ PS3="Please choose an option: "
 ###### STATE
 declare -i IS_INSTALLED=1
 declare -i IS_CONTINUING="${IS_CONTINUING:-1}"
+declare -i IS_HELP_MODE=2
 ######
 ###### THE ENVIRONMENT (declarations) ###########
 declare -x INSTALL_ROOT
@@ -79,10 +80,8 @@ declare -x PHPRC
 
 ##################################
 
-
-
 Clean() {
-    [[ $2 == 'help' ]] && helpful <<helpmenu
+    [ "${IS_HELP_MODE}" -eq 0 ] && helpful <<helpmenu
 Clean stuff.
 helpmenu
     shift
@@ -163,9 +162,6 @@ Msg() {
 gate() {
     [ "${UID}" -ne 0 ] && Msg "Run with sudo!" && exit 1
     return 0
-    #[[ $UID -eq 0 ]]
-    # || exec sudo \
-     #                        IS_CONTINUING=0 "${0}" "${*}"
 }
 
 
@@ -283,7 +279,7 @@ _HTTPD()
 
 Listen()
 {
-    [[ $2 == 'help' ]] && helpful <<'helpmenu'
+   [ "${IS_HELP_MODE}" -eq 0 ] && helpful <<'helpmenu'
 Stream netcat logs.
 
 EXAMPLE:
@@ -430,7 +426,7 @@ Start()
 {
     [ "${IS_CONTINUING}" -eq 0 ] && printf 'Continuing ... \n\n'
 
-    [[ $2 == 'help' ]] && helpful <<helpmenu
+    [ "${IS_HELP_MODE}" -eq 0 ] && helpful <<helpmenu
 Start processes.
 
 EXAMPLE:
@@ -483,7 +479,7 @@ Stop()
 {
     [ "${IS_CONTINUING}" -eq 0 ] && printf 'Continuing ... \n\n'
     :
-    [[ $2 == 'help' ]] && helpful <<'helpmenu'
+    [ "${IS_HELP_MODE}" -eq 0 ] && helpful <<'helpmenu'
 Stop processes.
 
 EXAMPLE:
@@ -548,15 +544,13 @@ _Locate() {
 
 Restart()
 {
-    [[ $2 == 'help' ]] && helpful <<helpmenu
+    [ "${IS_HELP_MODE}" -eq 0 ] && helpful <<helpmenu
 Restart processes.
 helpmenu
 
-    if ! isValid "${3}"; then exit $?; fi
-
     gate "${@}"; shift
 
-    if [ -z "${2}" ] || [ "${2}" == '-H' ]; then
+    if [[ "${START_MASQ}" -eq 2 && "${START_HTTPD}" -eq 2 ]] || [ "${START_HTTPD}" -eq 0 ]; then
         if _Locate "${HTTPD_PID}"; then
             pkill -HUP -F "${HTTPD_PID}" &
             printf '%s' "Restarting Apache httpd ... "
@@ -601,7 +595,7 @@ Test()
 {
     [ "${IS_CONTINUING}" -eq 0 ] && printf 'Continuing ... \n\n'
 
-    [[ $2 == 'help' ]] && helpful <<helpmenu
+    [ "${IS_HELP_MODE}" -eq 0 ] && helpful <<helpmenu
 Test that configuration files are syntactically correct.
 helpmenu
 
@@ -673,7 +667,7 @@ helpmenu
 
 
 Status() {
-    [[ $2 == 'help' ]] && helpful <<helpmenu
+    [ "${IS_HELP_MODE}" -eq 0 ] && helpful <<helpmenu
 Dislay the status of various processes.
 helpmenu
     # require watch
@@ -864,6 +858,9 @@ http-byob() {
                 func_reflection=func_reference
                 ;;
             help)
+                IS_HELP_MODE=0
+                "${2}"
+                exit
                 exit 69
                 ;;
             check)
