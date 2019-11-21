@@ -31,12 +31,13 @@ declare -xr HTTPD_SERVER_NAME="localhost"
 
 declare -xr HOSTNAME="${HOSTNAME}"
 
-declare -x START_MASQ=2
-declare -x START_HTTPD=2
+declare -x SIGNAL_MASQ= # 0=>called, 1=>stop, 2=>restart, 3=>start, 4=>null
+declare -x SIGNAL_HTTPD=
+
+declare -x SIGNAL_MESSAGE=
 
 # will only override what is allowed
 # source http_byob.cfg >/dev/null 2>&1
-
 
 declare PHP_VERSION
 if ! PHP_VERSION=$(php -r "echo PHP_MAJOR_VERSION.PHP_MINOR_VERSION;") >/dev/null 2>&1; then
@@ -113,20 +114,29 @@ err_report() {
     exit 1
 }
 trap 'err_report $LINENO' ERR
+:
 End() {
-    :
-    title 'http-byob: bye'
-    printf '\nBye\n'
-    exit
+    local code="${1}"
+
+    case "${code}" in
+        0)
+            title 'http-byob: bye'
+            printf '\nBye\n'
+            ;;
+        *)
+            printf '\nSomething may have gone wrong (%s)\n' "${code}"
+            ;;
+    esac
 }
-trap 'End' EXIT
+trap 'End ${?}' EXIT
 force_quit() {
     echo 'Something went terribly wrong ... maybe'
-    exit 1
 }
 trap 'force_quit' SIGHUP SIGINT SIGTERM INT
 :
 _D(){
+    local signal
+
     dnsmasq \
         --log-queries \
         --log-facility="${DNSMASQ_LOG:-\-}" \
@@ -144,6 +154,14 @@ _D(){
         --no-hosts \
         --strict-order \
         --conf-file="${DNSMASQ_CONFIG}"
+    signal="${?}"
+    printf 'Starting dnsmasq ... '
+    if [ "${signal}" -ne 0 ]; then
+        printf 'failed\n'
+        exit "${signal}"
+    fi
+   # wait
+    echo "DNS SIGNAL: ${signal}"
 }
 
 title ()
@@ -224,7 +242,7 @@ title()
     echo -ne "\\033]0;""$*""\\007"
 }
 :
-MASQ()
+_MASQ()
 {
     #    echoipdns lan
     #   return
@@ -250,12 +268,11 @@ MASQ()
     # )
     # #&
     # #disown %1
-    printf '%s\n' $'Starting `dnsmasq`.'
 }
 #
 _HTTPD()
 {
-    local pid
+    #local pid
     :
     # while IFS= read -r line; do
     #     printf '%s\n' "$line" | nc "${HOSTNAME}" "${HTTPD_LOG_PORT}"
@@ -265,15 +282,15 @@ _HTTPD()
         #         -e info \
         #         -DFOREGROUND \
         #         -k start 2>&1
+#            -e debug \
+
     # ) &
     "${APACHECTL}" \
         -f "${HTTPD_CONFIG}" \
-        -e debug \
         -k start
     #        disown %1
 
     printf '%s\n' $'Starting `httpd`. '
-
 }
 
 
@@ -353,6 +370,11 @@ helpmenu
 }
 
 Env() {
+    local _signal_message=()
+    _signal_message[0]="${SIGNAL_MASQ:+dnsmasq}"
+    _signal_message[1]="${SIGNAL_HTTPD:+httpd}"
+    SIGNAL_MESSAGE="(${_signal_message[*]})"
+
     local _HTTPD_ROOT
     local _CONTAINER_NAME
 
@@ -421,6 +443,9 @@ checkRoot() {
     :
 }
 :
+__spin() {
+    :
+}
 # Start
 _start()
 {
@@ -436,17 +461,17 @@ helpmenu
 
     if [ "${IS_CONTINUING}" -ne 0 ]; then
         if [[ -d "${HTTPD_ROOT}" ]]; then
-            echo "Ready to start?"
+            printf 'Ready to start? %s\n' "${SIGNAL_MESSAGE}"
             select yn in "Yes" "No"; do
                 case $yn in
                     Yes ) break ;;
-                    No ) exit 66;;
+                    No ) exit;;
                     *)
                         printf 'Invalid entry (%s)!\n\n' "${REPLY}"
                 esac
             done
             [ "${#yn}" -eq 0 ] && exit
-            printf 'Starting ...\n\n'
+            #printf 'Starting ... '
         else
             printf 'No container found. Aborting.\n\n'
             exit 1
@@ -456,14 +481,15 @@ helpmenu
     IS_CONTINUING=0
     gate "${@}"; shift
 
+    # signalling function instead
 
-    if [ "${START_MASQ}" -eq 0 ]; then
-        echo "MASQ"
-        MASQ
+    if [ "${SIGNAL_MASQ}" -eq 0 ] || [ "${SIGNAL_HTTPD}" -eq 4 ]
+    then
+        _MASQ
     fi
 
-    if [ "${START_HTTPD}" -eq 0 ]; then
-        echo "HTTPD"
+    if [ "${SIGNAL_HTTPD}" -eq 0 ] || [ "${SIGNAL_MASQ}" -eq 4 ]
+    then
         _HTTPD
     fi
 
@@ -489,7 +515,7 @@ helpmenu
 
     if [ "${IS_CONTINUING}" -ne 0 ]; then
         if [[ -d "${HTTPD_ROOT}" ]]; then
-            echo "Ready to stop."
+            printf 'Ready to stop? %s\n' "${SIGNAL_MESSAGE}"
             select yn in "Yes" "No"; do
                 case $yn in
                     Yes ) break;;
@@ -506,7 +532,9 @@ helpmenu
 
     IS_CONTINUING=0
     gate "${@}"; shift
-    if [ "${START_MASQ}" -eq 0 ]; then
+
+    if [ "${SIGNAL_MASQ}" -eq 0 ] || [ "${SIGNAL_HTTPD}" -eq 4 ]
+    then
         if [[ -r "${DNSMASQ_PID}" ]]; then
             z=$(<"${DNSMASQ_PID}")
             pkill -TERM -F "${DNSMASQ_PID}" >/dev/null 2>&1 &
@@ -520,7 +548,8 @@ helpmenu
         :
     fi
 
-    if [ "${START_HTTPD}" -eq 0 ]; then
+    if [ "${SIGNAL_HTTPD}" -eq 0 ] || [ "${SIGNAL_MASQ}" -eq 4 ]
+       then
         if [[ -r "${HTTPD_PID}" ]]; then
             z=$(<"${HTTPD_PID}")
             pkill -TERM -F "${HTTPD_PID}" >/dev/null 2>&1 &
@@ -550,7 +579,7 @@ helpmenu
 
     gate "${@}"; shift
 
-    if [[ "${START_MASQ}" -eq 2 && "${START_HTTPD}" -eq 2 ]] || [ "${START_HTTPD}" -eq 0 ]; then
+    if [[ "${SIGNAL_MASQ}" -eq 2 && "${SIGNAL_HTTPD}" -eq 2 ]] || [ "${START_HTTPD}" -eq 0 ]; then
         if _Locate "${HTTPD_PID}"; then
             pkill -HUP -F "${HTTPD_PID}" &
             printf '%s' "Restarting Apache httpd ... "
@@ -601,7 +630,7 @@ helpmenu
 
     if [ "${IS_CONTINUING}" -ne 0 ]; then
         if [[ -d "${HTTPD_ROOT}" ]]; then
-            echo "Ready to test."
+            printf 'Ready to test?\n'
             select yn in "Yes" "No"; do
                 case $yn in
                     Yes ) break;;
@@ -704,7 +733,6 @@ helpmenu
     fi
 }
 
-
 helpful()
 {
     read -r -d '' helpStatement
@@ -756,21 +784,21 @@ _build() {
     fi
 
     if [[ ! -d "${HTTPD_ROOT}" ]]; then
-        echo "Ready to scaffold."
+        echo "Ready to scaffold?"
         select yn in "Yes" "No"; do
             case $yn in
                 Yes ) break;;
-                No ) exit 66;;
+                No ) exit;;
             esac
         done
         [ "${#yn}" -eq 0 ] && exit
         printf 'Scaffolding ...\n\n'
     else
-        printf 'Build exists already.\n'
+        printf 'Build exists already. Force?\n'
         select yn in "Yes" "No"; do
             case $yn in
                 Yes ) break;;
-                No ) echo "Aborting"; exit 66;;
+                No ) echo "Aborting"; exit;;
             esac
         done
         [ "${#yn}" -eq 0 ] && exit
@@ -816,10 +844,10 @@ http-byob() {
                 break
                 ;;
             -D)
-                START_MASQ=0
+                SIGNAL_MASQ=3
                 ;;
             -H)
-                START_HTTPD=0
+                SIGNAL_HTTPD=3
                 ;;
             build|scaffold)
                 func_pass='build'
