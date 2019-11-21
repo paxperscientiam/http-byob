@@ -446,7 +446,7 @@ helpmenu
                 esac
             done
             [ "${#yn}" -eq 0 ] && exit
-            printf 'Starting ...\n\n'
+            printf 'Starting ... '
         else
             printf 'No container found. Aborting.\n\n'
             exit 1
@@ -456,18 +456,19 @@ helpmenu
     IS_CONTINUING=0
     gate "${@}"; shift
 
-
-    if [ "${START_MASQ}" -eq 0 ]; then
+    if [ "${START_MASQ}" -eq 0 ] || [ "${START_HTTPD}" -eq 2 ]
+    then
         echo "MASQ"
         MASQ
     fi
 
-    if [ "${START_HTTPD}" -eq 0 ]; then
+    if [ "${START_HTTPD}" -eq 0 ] || [ "${START_MASQ}" -eq 2 ]
+    then
         echo "HTTPD"
         _HTTPD
     fi
 
-
+    printf 'done.'
     # if [ -z "${2}" ] || [ "${2}" == '-H' ]; then
     #     _HTTPD
     # fi
@@ -616,7 +617,6 @@ helpmenu
         fi
     fi
 
-
     IS_CONTINUING=0
     gate "${@}"; shift
 
@@ -665,11 +665,13 @@ helpmenu
 
 }
 
-
 _status() {
     [ "${IS_HELP_MODE}" -eq 0 ] && helpful <<helpmenu
 Dislay the status of various processes.
 helpmenu
+
+    title status
+
     # require watch
     local HAS_WATCH=1
     if ! command -v watch >/dev/null 2>&1; then
@@ -679,10 +681,7 @@ helpmenu
     fi
     echo $HAS_WATCH
 
-
     shift
-    title status
-
 
     local PID
 
@@ -799,7 +798,6 @@ _help() {
 declare -x func_pass
 http-byob() {
     local options=("${@}")
-    local opt_next
     local value
     local index=0
     local _index
@@ -807,8 +805,9 @@ http-byob() {
     local func_reflection
     for opt in "${options[@]}"; do
         :
-        _index=$(( index + 1 ))
-        value="${options[$_index]}"
+        #_index=$(( index + 1 ))
+        #value="${options[$_index]}"
+        value="${options[$(( index + 1 ))]}"
         :
         case "${opt}" in
             --root|--container)
