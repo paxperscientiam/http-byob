@@ -31,8 +31,8 @@ declare -xr HTTPD_SERVER_NAME="localhost"
 
 declare -xr HOSTNAME="${HOSTNAME}"
 
-declare -x SIGNAL_MASQ= # 0=>called, 1=>stop, 2=>restart, 3=>start, 4=>null
-declare -x SIGNAL_HTTPD=
+declare -x SIGNAL_MASQ=4 # 0=>called, 1=>stop, 2=>restart, 3=>start, 4=>null
+declare -x SIGNAL_HTTPD=4
 
 declare -x SIGNAL_MESSAGE=
 
@@ -889,9 +889,14 @@ http-byob() {
                 ;;
             help)
                 IS_HELP_MODE=0
-                "_${2}"
-                exit
-                exit 69
+                if command -v "_${2}" >/dev/null 2>&1
+                then
+                    "_${2}"
+                    exit
+                else
+                    printf '%s is an unknown function.\n' "${2}"
+                    exit 1
+                fi
                 ;;
             check)
                 isInstalled
