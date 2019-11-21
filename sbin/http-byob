@@ -849,43 +849,27 @@ http-byob() {
                 ;;
             build|scaffold)
                 func_pass='build'
-                func_reference=_build
-                func_reflection=func_reference
                 ;;
             start)
                 func_pass='start'
-                func_reference=_start
-                func_reflection=func_reference
                 ;;
             stop)
                 func_pass='stop'
-                func_reference=_stop
-                func_reflection=func_reference
                 ;;
             restart)
                 func_pass='restart'
-                func_reference=_restart
-                func_reflection=func_reference
                 ;;
             test)
                 func_pass='test'
-                func_reference=_test
-                func_reflection=func_reference
                 ;;
             listen|watch)
                 func_pass='listen'
-                func_reference=_listen
-                func_reflection=func_reference
                 ;;
             clean)
                 func_pass='clean'
-                func_reference=_clean
-                func_reflection=func_reference
                 ;;
             status)
                 func_pass='status'
-                func_reference=_status
-                func_reflection=func_reference
                 ;;
             help)
                 IS_HELP_MODE=0
@@ -925,7 +909,7 @@ http-byob() {
     fi
 
     Env  # define environment
-    "${!func_reflection}" "${*}"
+    "_${func_pass}" "${*}"
 }
 
 if ! isInstalled ;then
