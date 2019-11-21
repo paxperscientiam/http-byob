@@ -240,11 +240,12 @@ isInstalled() {
     IS_INSTALLED=0
 }
 :
-isValid()
-{
-    [[ ! "${*}" =~ ^(-D|-H|^$)$ ]] && Msg "Accepted flags are -D and -H." 1
-    return 0
-}
+# isValid()
+# {
+#     [[ ! "${*}" =~ ^(-D|-H|^$)$ ]] && Msg "Accepted flags are -D and -H." 1
+#     return 0
+# }
+:
 title()
 {
     echo -ne "\\033]0;""$*""\\007"
@@ -445,10 +446,6 @@ Env() {
 
     PHPRC="${PHP_ROOT}/php.ini"
 
-}
-
-checkRoot() {
-    :
 }
 :
 __spin() {
