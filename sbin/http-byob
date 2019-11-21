@@ -137,31 +137,38 @@ trap 'force_quit' SIGHUP SIGINT SIGTERM INT
 _D(){
     local signal
 
-    dnsmasq \
-        --log-queries \
-        --log-facility="${DNSMASQ_LOG:-\-}" \
-        --log-async=15 \
-        --stop-dns-rebind \
-        --bind-interfaces \
-        --user="${HTTPD_USER}" \
-        --port=53 \
-        --local-service \
-		    --server=/lan/127.0.0.1 \
-        --address=/lan/127.0.0.1 \
-        --pid-file="${DNSMASQ_PID}" \
-        --cache-size=0 \
-        --no-resolv \
-        --no-hosts \
-        --strict-order \
-        --conf-file="${DNSMASQ_CONFIG}"
-    signal="${?}"
-    printf 'Starting dnsmasq ... '
-    if [ "${signal}" -ne 0 ]; then
-        printf 'failed\n'
-        exit "${signal}"
+    if ! lsof -n -iTCP:"${DNS_PORT}" >/dev/null 2>&1
+    then
+        dnsmasq \
+            --log-queries \
+            --log-facility="${DNSMASQ_LOG:-\-}" \
+            --log-async=15 \
+            --stop-dns-rebind \
+            --bind-interfaces \
+            --user="${HTTPD_USER}" \
+            --port=53 \
+            --local-service \
+		        --server=/lan/127.0.0.1 \
+            --address=/lan/127.0.0.1 \
+            --pid-file="${DNSMASQ_PID}" \
+            --cache-size=0 \
+            --no-resolv \
+            --no-hosts \
+            --strict-order \
+            --conf-file="${DNSMASQ_CONFIG}"
+        signal="${?}"
+        printf 'Starting dnsmasq ... '
+        if [ "${signal}" -ne 0 ]; then
+            printf 'failed\n'
+            exit "${signal}"
+        fi
+        # wait
+        echo "DNS SIGNAL: ${signal}"
+    else
+        printf 'Unable to bind to port %s.\n' "${DNS_PORT}"
+        printf 'Check with this: lsof -n -iTCP:%s\n' "${DNS_PORT}"
+        exit 1
     fi
-   # wait
-    echo "DNS SIGNAL: ${signal}"
 }
 
 title ()
@@ -179,6 +186,7 @@ Msg() {
 # permission check
 gate() {
     [ "${UID}" -ne 0 ] && Msg "Run with sudo!" && exit 1
+    printf 'Continuing with elevated privileges.\n\n'
     return 0
 }
 
@@ -282,7 +290,7 @@ _HTTPD()
         #         -e info \
         #         -DFOREGROUND \
         #         -k start 2>&1
-#            -e debug \
+    #            -e debug \
 
     # ) &
     "${APACHECTL}" \
@@ -296,7 +304,7 @@ _HTTPD()
 
 _listen()
 {
-   [ "${IS_HELP_MODE}" -eq 0 ] && helpful <<'helpmenu'
+    [ "${IS_HELP_MODE}" -eq 0 ] && helpful <<'helpmenu'
 Stream netcat logs.
 
 EXAMPLE:
@@ -549,7 +557,7 @@ helpmenu
     fi
 
     if [ "${SIGNAL_HTTPD}" -eq 0 ] || [ "${SIGNAL_MASQ}" -eq 4 ]
-       then
+    then
         if [[ -r "${HTTPD_PID}" ]]; then
             z=$(<"${HTTPD_PID}")
             pkill -TERM -F "${HTTPD_PID}" >/dev/null 2>&1 &
@@ -895,7 +903,7 @@ http-byob() {
                 exit 69
                 ;;
             __)
-                __
+
                 ;;
             *)
                 Msg "Unknown option: try 'start', 'stop', 'restart', 'test', 'listen', 'clean', 'help'" 1
@@ -919,5 +927,4 @@ if ! isInstalled ;then
     exit 1
 fi
 
-[[ $UID -eq 0 ]] && printf 'Continuing with elevated privileges.\n\n'
 entry "${@}"
