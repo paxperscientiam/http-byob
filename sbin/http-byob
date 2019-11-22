@@ -666,13 +666,15 @@ helpmenu
     printf ' * httpd:%s ' "${HTTPD_PORT}"
     if lsof -n -iTCP:"${HTTPD_PORT}" >/dev/null 2>&1; then
         printf '— in use\n'
+        lsof -iTCP:"${HTTPD_PORT}" -sTCP:LISTEN
     else
         printf '— open\n'
     fi
 
     printf ' * dnsmasq:%s ' "${DNS_PORT}"
     if lsof -n -iTCP:"${DNS_PORT}" >/dev/null 2>&1; then
-            printf '— in use\n'
+        printf '— in use\n'
+        lsof -iTCP@127.0.0.1:"${DNS_PORT}"
     else
         printf '— open\n'
     fi
