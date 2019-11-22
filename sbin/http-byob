@@ -134,6 +134,11 @@ force_quit() {
 }
 trap 'force_quit' SIGHUP SIGINT SIGTERM INT
 :
+_Locate() {
+    [[ -f "${1}" ]] && return 0
+    return 1
+}
+:
 _D(){
     local signal
 
@@ -571,11 +576,6 @@ helpmenu
     printf 'Completely shutdown.\n\n'
 }
 
-_Locate() {
-    [[ -f "${1}" ]] && return 0
-    return 1
-}
-
 _restart()
 {
     [ "${IS_HELP_MODE}" -eq 0 ] && helpful <<helpmenu
@@ -766,7 +766,7 @@ FetchConfigs() {
     while IFS='' read -r remote_file; do
         printf '  %s ... ' "${remote_file}"
         # don't redownload unncessarily
-        [[ -f "${ROOT}/${remote_file}" ]] && printf 'done (unchanged).\n' && continue
+        _Locate "${ROOT}/${remote_file}" && printf 'done (unchanged).\n' && continue
         (curl -A "${UA}" -H "${HEADER_1}" "${URL_BASE}/${remote_file}${QUERY}" >| \
              "${ROOT}/${remote_file}" 2>/dev/null ) &
         wait
@@ -815,7 +815,6 @@ _build() {
 
     FetchConfigs "${HTTPD_ROOT}"
 
-    exit 77
     return 0
 }
 
