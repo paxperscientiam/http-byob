@@ -633,26 +633,14 @@ _test()
 Test that configuration files are syntactically correct.
 helpmenu
 
-    if [ "${IS_CONTINUING}" -ne 0 ]; then
-        if [[ -d "${HTTPD_ROOT}" ]]; then
-            printf 'Ready to test?\n'
-            select yn in "Yes" "No"; do
-                case $yn in
-                    Yes ) break;;
-                    No ) exit 66;;
-                esac
-            done
-            [ "${#yn}" -eq 0 ] && exit
-            printf 'Testing ...\n\n'
-        else
-            printf 'No container found. Aborting.\n\n'
-            exit 1
-        fi
+    if [[ ! -d "${HTTPD_ROOT}" ]]; then
+        printf 'No container found. Aborting.\n\n'
+        exit 1
     fi
 
 
     IS_CONTINUING=0
-    gate "${@}"; shift
+    #gate "${@}"; shift
 
     local ERR
     local var
@@ -672,6 +660,28 @@ helpmenu
     #         printf '%s\n' "${BASH_REMATCH[1]}"
     #     fi
     # done < <("${APACHECTL}" -f "${HTTPD_CONFIG}" -S)
+
+    printf 'Checking port availability ...\n'
+
+    printf ' * httpd:%s ' "${HTTPD_PORT}"
+    if lsof -n -iTCP:"${HTTPD_PORT}" >/dev/null 2>&1; then
+        printf '— in use\n'
+    else
+        printf '— open\n'
+    fi
+
+    printf ' * dnsmasq:%s ' "${DNS_PORT}"
+    if lsof -n -iTCP:"${DNS_PORT}" >/dev/null 2>&1; then
+            printf '— in use\n'
+    else
+        printf '— open\n'
+    fi
+    printf '\n\n'
+
+
+    sleep 1
+
+
     "${APACHECTL}" -f "${HTTPD_CONFIG}" -S
 
     printf '\v\v'
