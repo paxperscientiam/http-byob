@@ -172,7 +172,7 @@ _D(){
     else
         printf 'Unable to bind to port %s.\n' "${DNS_PORT}"
         printf 'Check with this: lsof -n -iTCP:%s\n' "${DNS_PORT}"
-        exit 1
+        #exit 1
     fi
 }
 
