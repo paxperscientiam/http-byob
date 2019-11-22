@@ -854,7 +854,7 @@ http-byob() {
         :
         case "${opt}" in
             --root|--container)
-                CONTAINER_NAME="${value:-HTTP_BYOB}"
+                CONTAINER_NAME="${value:-HTTP-BYOB_Container}"
                 break
                 ;;
             -D)
