@@ -14,8 +14,9 @@ Assuming you clone repo into your HOME folder ...
 
 ``` shell
 cd ~
-http-byob/sbin/http-byob build --root # this will scaffold a server in your HOME
-http-byob/sbin/http-byob start --root # start httpd and dnsmasq
+# This will create the folder ${HOME}/HTTP-BYOB_Container and scaffold there
+http-byob build --root # this will
+http-byob start --root # start httpd and dnsmasq
 ```
 Confirm that things are working well by going here: http://localhost:80/server-info
 
@@ -23,7 +24,7 @@ Confirm that things are working well by going here: http://localhost:80/server-i
 Tearing down ...
 ``` shell
 cd ~
-http-byob/sbin/http-byob stop --root # stop httpd and dnsmasq
+http-byob stop --root # stop httpd and dnsmasq
 \rm HTTP-BYOB_Container # this will remove everyting ... duh
 ```
 
