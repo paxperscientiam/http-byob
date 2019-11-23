@@ -86,10 +86,16 @@ declare -x PHPRC
 # colors
 declare end=$'\033[0m'
 declare red=$'\033[0;31m'
+declare yellow=$'\033[0;33m'
 
 function red {
     printf '%s%s%s' "${red}" "${1}" "${end}"
 }
+function yellow {
+    printf '%s%s%s' "${yellow}" "${1}" "${end}"
+}
+
+
 
 _clean() {
     [ "${IS_HELP_MODE}" -eq 0 ] && helpful <<helpmenu
@@ -120,7 +126,9 @@ helpmenu
     printf '%s\n' "Done cleaning."
 }
 err_report() {
-    echo "Error on line $1"
+    local msg="Error on line #$1
+"
+    red "${msg}"
     exit 1
 }
 trap 'err_report $LINENO' ERR
@@ -863,7 +871,7 @@ _build() {
         [ "${#yn}" -eq 0 ] && exit
         printf 'Scaffolding ...\n\n'
     else
-        red 'Build exists already. Force?
+        yellow 'Build exists already. Force?
 '
         select yn in "Yes" "No"; do
             case $yn in
