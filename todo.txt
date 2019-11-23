@@ -1,0 +1,47 @@
+
+fallback if DNSMASQ not available
+display dashboard
+use a config file
+status command
+
+
+
+
+test virtualhost resolv
+modular vhosts
+
+test should include if other httpd running
+define netcat logger in config files
+status should give warning message when no owned processes are running.
+hosts more modular with files
+
+simply skip dnsmasq if not present
+The assumption should be to start server in current location but differentiate between scaffolding and adopting
+Add option to list server locations or at least to recall that one has been installed already
+
+
+At some point need to do a commit comparison to decide whether to download
+
+detect curl errors
+add ability to change port number or at least detect that port 80 is in use
+need to improve logging
+Argument for specific websites
+make recognize developer repo for streamlining development
+
+really need to simplify structure for vhosts
+use clients/client.site/wwwroot
+If PID file is gone or doesnt work get server name
+As it the status command just looks up whatever instances are not running but doesnt confirm that they were spawned by http byob
+should indicate scaffold directory when the prompt comes up
+Need someway to check if a container is being used already
+need to separate out files so that its clear
+
+
+instead of listing all found documents push missing to array and then report that at once
+Very important to prevent the possibility of clobering
+SOmething like routes config
+should only allow once instance at a time
+need a stop anywhere option
+in order to target these processes need to somehow tag them
+Make it so logging works without logrotate
+create a status webpage

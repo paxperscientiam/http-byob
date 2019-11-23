@@ -6,8 +6,5 @@ var/run/
 
 .DS_Store
 
-report.txt
-done.txt
-todo.txt
 pnpm-debug.log
 node_modules
