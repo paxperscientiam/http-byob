@@ -135,22 +135,28 @@ trap 'err_report $LINENO' ERR
 :
 End() {
     local code="${1}"
+    local msg
 
     case "${code}" in
         0)
             title 'http-byob: bye'
-            printf '\nBye\n'
+            printf 'Bye\n'
             ;;
         *)
-            printf '\nSomething may have gone wrong (%s)\n' "${code}"
+            msg="Something may have gone wrong ${code}
+"
+            red "${msg}"
             ;;
     esac
 }
 trap 'End ${?}' EXIT
 force_quit() {
-    echo 'Something went terribly wrong ... maybe'
+    local msg='
+Interruption! Something bad may have happened (???)
+'
+    red "${msg}"
 }
-trap 'force_quit' SIGHUP SIGINT SIGTERM INT
+trap 'force_quit ${?}' SIGHUP SIGINT SIGTERM INT
 :
 _Locate() {
     [[ -f "${1}" ]] && return 0
@@ -524,7 +530,7 @@ helpmenu
             [ "${#yn}" -eq 0 ] && exit
             #printf 'Starting ... '
         else
-            printf 'No container found. Aborting.\n\n'
+            printf 'No container found. Aborting ... '
             exit 1
         fi
     fi
@@ -592,7 +598,7 @@ helpmenu
             [ "${#yn}" -eq 0 ] && exit
             printf 'Stopping ...\n\n'
         else
-            printf 'No container found. Aborting.\n\n'
+            printf 'No container found. Aborting ... '
             exit 1
         fi
     fi
@@ -692,7 +698,7 @@ Test that configuration files are syntactically correct.
 helpmenu
 
     if [[ ! -d "${HTTPD_ROOT}" ]]; then
-        printf 'No container found. Aborting.\n\n'
+        printf 'No container found. Aborting ... '
         exit 1
     elif [[ ! -f "${HTTPD_ROOT}/.http-byob.anchor" ]]; then
         printf 'Possible container, but root indicating file \".http-byob.anchor\" not found.\n\n'
@@ -871,12 +877,13 @@ _build() {
         [ "${#yn}" -eq 0 ] && exit
         printf 'Scaffolding ...\n\n'
     else
-        yellow 'Build exists already. Force?
-'
+        msg="Build already exists here. Force? (${HTTPD_ROOT})
+"
+        yellow "${msg}"
         select yn in "Yes" "No"; do
             case $yn in
                 Yes ) break;;
-                No ) echo "Aborting"; exit;;
+                No ) printf 'Aborting ... '; exit;;
             esac
         done
         [ "${#yn}" -eq 0 ] && exit
