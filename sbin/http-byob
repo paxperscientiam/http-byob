@@ -27,6 +27,8 @@ declare -xi HTTPD_LOG_PORT=9000
 declare -xr HTTPD_VHOST_CUSTOM_LOG=/dev/null
 declare -xr HTTPD_VHOST_ERROR_LOG=/dev/null
 
+declare -x LOGROTATE
+
 declare -xr HTTPD_SERVER_NAME="localhost"
 
 declare -xr HOSTNAME="${HOSTNAME}"
@@ -234,6 +236,14 @@ isInstalled() {
 
     printf ' * dnsmasq '
     if DNSMASQ=$(command -v dnsmasq) >/dev/null 2>&1; then
+        printf '✓\n'
+    else
+        printf '✗\n'
+        exit 1
+    fi
+
+    printf ' * logratate '
+    if LOGROTATE=$(command -v rotatelogs) >/dev/null 2>&1; then
         printf '✓\n'
     else
         printf '✗\n'
