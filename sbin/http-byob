@@ -609,8 +609,8 @@ Restart processes.
 helpmenu
 
     gate "${@}"; shift
-
-    if [[ "${SIGNAL_MASQ}" -eq 2 && "${SIGNAL_HTTPD}" -eq 2 ]] || [ "${START_HTTPD}" -eq 0 ]; then
+    if [ "${SIGNAL_HTTPD}" -eq 0 ] || [ "${SIGNAL_MASQ}" -eq 4 ]
+    then
         if _Locate "${HTTPD_PID}"; then
             pkill -HUP -F "${HTTPD_PID}" &
             printf '%s' "Restarting Apache httpd ... "
@@ -629,7 +629,7 @@ helpmenu
         fi
     fi
 
-    if [ -z "${2}" ] || [ "${2}" == '-D' ]; then
+    if [ "${SIGNAL_MASQ}" -eq 0 ] || [ "${SIGNAL_HTTPD}" -eq 4 ]; then
 
         if _Locate "${DNSMASQ_PID}"; then
             # SIGHUP forces reread of files sooo should work?
