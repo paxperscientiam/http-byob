@@ -1,17 +1,19 @@
 # DISCLAIMER: THIS SCRIPT IS EXPERIMENTAL. YOU USE IT AT YOUR OWN PERIL.
 
 
-Testing
+Quick test
 
 ``` shell
 # clone in $HOME folder
 cd ~
 git clone git@github.com:paxperscientiam/http-byob.git
-
+cd http-byob
+http-byob start --root .
 ```
+Confirm that things are working well by going here: http://localhost:80/server-info
 
-Assuming you clone repo into your HOME folder ...
 
+Build your own
 ``` shell
 cd ~
 # This will create the folder ${HOME}/HTTP-BYOB_Container and scaffold there
