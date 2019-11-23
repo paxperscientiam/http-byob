@@ -408,10 +408,20 @@ Env() {
     # clean up path
     CONTAINER_NAME=$(perl -MFile::Spec -e 'printf File::Spec->canonpath($ENV{__CONTAINER_NAME}),qq<\n>')
     #CONTAINER_NAME=$(perl -MCwd -e 'printf Cwd::abs_path($ENV{CONTAINER_NAME}),qq<\n>')
+    if [[ "${__CONTAINER_NAME}" =~ ^\. ]]; then
+        CONTAINER_NAME=$(perl -MCwd -e 'printf Cwd::abs_path($ENV{CONTAINER_NAME}),qq<\n>')
+        # echo $wtf
+        # exit
+        # CONTAINER_NAME="${PWD}"
+    fi
+
     _CONTAINER_NAME=$(basename "${CONTAINER_NAME}")
 
+
     HTTPD_ROOT=$(perl -MFile::Spec -e 'printf File::Spec->canonpath($ENV{__HTTPD_ROOT}),qq<\n>')
+
     #HTTPD_ROOT=$(perl -MCwd -e 'printf Cwd::abs_path($ENV{HTTPD_ROOT}),qq<\n>')
+
 
     if [[ "${__CONTAINER_NAME}" =~ /|\. ]]; then
         # hTTPD_ROOT is the files containing path
@@ -421,6 +431,7 @@ Env() {
         HTTPD_ROOT="${HTTPD_ROOT}/${_CONTAINER_NAME}"
         CONTAINER_NAME="${_CONTAINER_NAME}"
     fi
+
 
     HTTPD_USER=$(logname)
 
@@ -461,6 +472,10 @@ Env() {
 
     PHPRC="${PHP_ROOT}/php.ini"
 
+    echo "ROOT: $HTTPD_ROOT"
+    echo "CONT: $CONTAINER_NAME"
+
+    sleep 1
 }
 :
 __spin() {
@@ -822,7 +837,7 @@ _build() {
     fi
 
     if [[ ! -w "${INSTALL_ROOT}" ]]; then
-        printf 'The user %s does not have permission to scaffold within the directory %s. Please try another.\n\n' "${USER}" "${INSTALL_ROOT}"
+        printf 'The user \"%s\" does not have permission to scaffold within the directory \"%s\". Please try another.\n\n' "${USER}" "${INSTALL_ROOT}"
         exit 1
     fi
 
@@ -956,9 +971,6 @@ http-byob() {
     fi
 
     Env  # define environment
-    echo "${HTTPD_ROOT}"
-    exit 33
-
     "_${func_pass}" "${*}"
 }
 
