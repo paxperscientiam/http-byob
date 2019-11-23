@@ -509,6 +509,22 @@ helpmenu
     # fi
 }
 
+_log() {
+    [ "${IS_CONTINUING}" -eq 0 ] && printf 'Continuing ... \n\n'
+    if [ "${SIGNAL_MASQ}" -eq 0 ] || [ "${SIGNAL_HTTPD}" -eq 4 ]; then
+        if [[ -f "${DNSMASQ_LOG}" ]]; then
+            \tail -f "${DNSMASQ_LOG}"
+            return
+        fi
+    fi
+
+    if [ "${SIGNAL_HTTPD}" -eq 0 ] || [ "${SIGNAL_MASQ}" -eq 4 ]
+    then
+        :
+        return
+    fi
+
+}
 #
 # Stop
 _stop()
@@ -882,6 +898,9 @@ http-byob() {
                 ;;
             listen|watch)
                 func_pass='listen'
+                ;;
+            log)
+                func_pass='log'
                 ;;
             clean)
                 func_pass='clean'
