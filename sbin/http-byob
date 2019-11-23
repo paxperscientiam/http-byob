@@ -668,6 +668,7 @@ helpmenu
 
 _test()
 {
+
     [ "${IS_CONTINUING}" -eq 0 ] && printf 'Continuing ... \n\n'
 
     [ "${IS_HELP_MODE}" -eq 0 ] && helpful <<helpmenu
@@ -676,6 +677,9 @@ helpmenu
 
     if [[ ! -d "${HTTPD_ROOT}" ]]; then
         printf 'No container found. Aborting.\n\n'
+        exit 1
+    elif [[ ! -f "${HTTPD_ROOT}/.http-byob.anchor" ]]; then
+        printf 'Possible container, but root indicating file \".http-byob.anchor\" not found.\n\n'
         exit 1
     fi
 
@@ -815,6 +819,7 @@ FetchConfigs() {
         "conf/dnsmasq.conf"
         "etc/resolv.conf"
         "vhosts.d/all.conf"
+        ".http-byob.anchor"
     )
 
     printf 'Fetching and writing to %s ... \n' "${ROOT}"
