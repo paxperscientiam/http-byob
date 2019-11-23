@@ -28,6 +28,19 @@ http-byob stop --root # stop httpd and dnsmasq
 \rm HTTP-BYOB_Container # this will remove everyting ... duh
 ```
 
+OK, let's say you create a container with name.
+
+``` shell
+cd ~
+http-byob build --root ./custom-container-name
+```
+
+When you do this, you can go forth one of two ways ...
+
+``` shell
+# cd into the container and specify --root as .
+# or, stay above the container directory and specify --root as path/to/custom-container-name
+```
 
 <!-- Under heavy development. Use it at your own peril. -->
 
