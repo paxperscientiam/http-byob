@@ -712,10 +712,10 @@ helpmenu
     "${APACHECTL}" -f "${HTTPD_CONFIG}" -S
 
     printf '\v\v'
-
+    exit 100
 
     [[ -z $DNSMASQ ]] && Msg 'dnsmasq not found!' 1
-    [[ ! -x $DNSMASQ ]] && Msg "Dnsmasq not found" 1
+    [[ ! -x $DNSMASQ ]] && Msg "Dnsmasq not executable" 1
     "${DNSMASQ}" -C "${DNSMASQ_CONFIG}" --test &
     wait
     printf '\v\v'
@@ -857,7 +857,7 @@ _build() {
 }
 
 entry(){
-    [[ ! "${1}" == '_test' ]] && http-byob "${@}"
+    http-byob "${@}"
 }
 
 _help() {
@@ -954,6 +954,9 @@ http-byob() {
     fi
 
     Env  # define environment
+    echo "${HTTPD_ROOT}"
+    exit 33
+
     "_${func_pass}" "${*}"
 }
 
