@@ -83,6 +83,14 @@ declare -x PHPRC
 
 ##################################
 
+# colors
+declare end=$'\033[0m'
+declare red=$'\033[0;31m'
+
+function red {
+    printf '%s%s%s' "${red}" "${1}" "${end}"
+}
+
 _clean() {
     [ "${IS_HELP_MODE}" -eq 0 ] && helpful <<helpmenu
 Clean stuff.
@@ -855,7 +863,8 @@ _build() {
         [ "${#yn}" -eq 0 ] && exit
         printf 'Scaffolding ...\n\n'
     else
-        printf 'Build exists already. Force?\n'
+        red 'Build exists already. Force?
+'
         select yn in "Yes" "No"; do
             case $yn in
                 Yes ) break;;
