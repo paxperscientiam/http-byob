@@ -1,7 +1,7 @@
 # DISCLAIMER: THIS SCRIPT IS EXPERIMENTAL. YOU USE IT AT YOUR OWN PERIL.
 
 
-Quick test
+## Quick test
 
 ``` shell
 # clone in $HOME folder
@@ -13,7 +13,7 @@ http-byob start --root .
 Confirm that things are working well by going here: http://localhost:80/server-info
 
 
-Build your own
+## Build your own
 ``` shell
 cd ~
 # This will create the folder ${HOME}/HTTP-BYOB_Container and scaffold there
@@ -23,7 +23,7 @@ http-byob start --root # start httpd and dnsmasq
 Confirm that things are working well by going here: http://localhost:80/server-info
 
 
-Tearing down ...
+## Tearing down ...
 ``` shell
 cd ~
 http-byob stop --root # stop httpd and dnsmasq
@@ -43,6 +43,11 @@ When you do this, you can go forth one of two ways ...
 # cd into the container and specify --root as .
 # or, stay above the container directory and specify --root as path/to/custom-container-name
 ```
+
+## Going further
+
+* https://github.com/FiloSottile/mkcert
+
 
 <!-- Under heavy development. Use it at your own peril. -->
 

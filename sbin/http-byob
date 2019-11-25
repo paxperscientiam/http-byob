@@ -143,7 +143,7 @@ End() {
             printf 'Bye\n'
             ;;
         *)
-            msg="Something may have gone wrong ${code}
+            msg="Something may have gone wrong (${code})
 "
             red "${msg}"
             ;;
@@ -565,9 +565,11 @@ _log() {
         fi
     fi
 
+    local HTTPD_LOG="${HTTPD_ROOT}/logs/clients/access.log"
     if [ "${SIGNAL_HTTPD}" -eq 0 ] || [ "${SIGNAL_MASQ}" -eq 4 ]
     then
         :
+        \tail -f "${HTTPD_LOG}"
         return
     fi
 
