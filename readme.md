@@ -1,6 +1,7 @@
 # DISCLAIMER: THIS SCRIPT IS EXPERIMENTAL. YOU USE IT AT YOUR OWN PERIL.
 
-
+![](demo.gif
+)
 ## Quick test
 
 ``` shell
