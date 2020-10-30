@@ -9,7 +9,7 @@
 cd ~
 git clone git@github.com:paxperscientiam/http-byob.git
 cd http-byob
-http-byob start --root .
+./sbin/http-byob start --root .
 ```
 Confirm that things are working well by going here: http://localhost:80/server-info
 
@@ -18,8 +18,8 @@ Confirm that things are working well by going here: http://localhost:80/server-i
 ``` shell
 cd ~
 # This will create the folder ${HOME}/HTTP-BYOB_Container and scaffold there
-http-byob build --root # this will
-http-byob start --root # start httpd and dnsmasq
+./sbin/http-byob build --root # this will
+./sbin/http-byob start --root # start httpd and dnsmasq
 ```
 Confirm that things are working well by going here: http://localhost:80/server-info
 
@@ -35,7 +35,7 @@ OK, let's say you create a container with name.
 
 ``` shell
 cd ~
-http-byob build --root ./custom-container-name
+./sbin/http-byob build --root ./custom-container-name
 ```
 
 When you do this, you can go forth one of two ways ...
