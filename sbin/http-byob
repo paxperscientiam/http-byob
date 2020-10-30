@@ -6,6 +6,7 @@ unset CDPATH
 :
 PS3="Please choose an option: "
 :
+echo $HTTP_SERVER_ROOT
 ###### STATE
 declare -i IS_INSTALLED=1
 declare -i IS_CONTINUING="${IS_CONTINUING:-1}"
