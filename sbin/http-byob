@@ -319,6 +319,8 @@ _MASQ()
 #
 _HTTPD()
 {
+    echo $HTTP_SERVER_ROOT
+    echo $HTTP_SERVER_LIB_ROOT
     #local pid
     :
     # while IFS= read -r line; do
@@ -460,11 +462,13 @@ Env() {
         Darwin)
             #echo 'Mac OS X'
             if [[ "${APACHECTL}" =~ \/opt\/local ]]; then
-                HTTP_SERVER_LIB_ROOT="${HTTP_SERVER_ROOT}/lib/apache2"
+
+                HTTP_SERVER_LIB_ROOT="lib/apache2"
             else
-                HTTP_SERVER_LIB_ROOT="${HTTP_SERVER_ROOT}/libexec"
+                echo 322332
+                HTTP_SERVER_LIB_ROOT="libexec/apache2"
             fi
-            # if macports, then 
+
             ;;
         Linux)
             #echo 'Linux'
@@ -769,7 +773,6 @@ helpmenu
         printf '— open\n'
     fi
     printf '\n\n'
-
 
     sleep 1
 
