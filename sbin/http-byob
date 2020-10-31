@@ -10,11 +10,11 @@ PS3="Please choose an option: "
 declare -i IS_INSTALLED=1
 declare -i IS_CONTINUING="${IS_CONTINUING:-1}"
 declare -i IS_HELP_MODE=2
+declare -i IS_MACPORTS=0
 ######
 ###### THE ENVIRONMENT (declarations) ###########
 declare -x INSTALL_ROOT
 declare -x HTTPD_USER
-
 ###############
 # IO
 ###############
@@ -53,6 +53,8 @@ fi
 # DIRECTORY STRUCTURE
 ########################
 declare -x HTTP_SERVER_ROOT
+
+declare -x HTTP_SERVER_LIB_ROOT
 
 declare -x HTTPD_ROOT
 declare -x CONTAINER_NAME
@@ -276,6 +278,29 @@ isInstalled() {
     printf '\n\n'
 
     IS_INSTALLED=0
+
+    case "$(uname -s)" in
+
+        Darwin)
+            #echo 'Mac OS X'
+            echo "${APACHECTL}"
+            if [[ "${APACHECTL}" =~ \/opt\/local ]]; then
+                IS_MACPORTS=1
+                HTTP_SERVER_LIB_ROOT="lib/apache2/modules"
+            else
+                # macos catalina
+                HTTP_SERVER_LIB_ROOT="libexec/apache2"
+            fi
+
+            ;;
+        Linux)
+            #echo 'Linux'
+            ;;
+
+        *)
+            ;;
+    esac
+
 }
 :
 # isValid()
@@ -334,6 +359,7 @@ _HTTPD()
     #            -e debug \
 
     # ) &
+
     "${APACHECTL}" \
         -f "${HTTPD_CONFIG}" \
         -k start
@@ -457,27 +483,6 @@ Env() {
         CONTAINER_NAME="${_CONTAINER_NAME}"
     fi
 
-    case "$(uname -s)" in
-
-        Darwin)
-            #echo 'Mac OS X'
-            if [[ "${APACHECTL}" =~ \/opt\/local ]]; then
-
-                HTTP_SERVER_LIB_ROOT="lib/apache2"
-            else
-                echo 322332
-                HTTP_SERVER_LIB_ROOT="libexec/apache2"
-            fi
-
-            ;;
-        Linux)
-            #echo 'Linux'
-            HTTP_SERVER_LIB_ROOT="${HTTP_SERVER_ROOT}/lib"
-            ;;
-
-        *)
-            ;;
-    esac
 
 
     HTTPD_USER=$(logname)
@@ -497,7 +502,11 @@ Env() {
 
     PHP_ROOT="${HTTPD_ROOT}/etc/PHP${PHP_VERSION}/"
 
-    PID_ROOT="${HTTPD_ROOT}/var/run"
+    if [[ 1 -eq $IS_MACPORTS ]]; then
+        PID_ROOT="/opt/local/var/run"
+    else
+        PID_ROOT="${HTTPD_ROOT}/var/run"
+    fi
 
     CONF_ROOT="${HTTPD_ROOT}/conf"
 
@@ -505,9 +514,17 @@ Env() {
 
     DNSMASQ_LOG="${LOGS_ROOT}/dnsmasq.log"
 
-    DNSMASQ_PID="${PID_ROOT}/dnsmasq.pid"
+    if [[ 1 -eq $IS_MACPORTS ]]; then
+        DNSMASQ_PID="${PID_ROOT}/dnsmasq/dnsmasq.pid"
+    else
+        DNSMASQ_PID="${PID_ROOT}/dnsmasq.pid"
+    fi
 
-    HTTPD_PID="${PID_ROOT}/httpd.pid"
+    if [[ 1 -eq $IS_MACPORTS ]]; then
+        HTTPD_PID="${PID_ROOT}/apache2/httpd.pid"
+    else
+        HTTPD_PID="${PID_ROOT}/httpd.pid"
+    fi
 
     DNS_RESOLV="${HTTPD_ROOT}/etc/resolv.conf"
 
@@ -635,7 +652,10 @@ helpmenu
 
     if [ "${SIGNAL_MASQ}" -eq 0 ] || [ "${SIGNAL_HTTPD}" -eq 4 ]
     then
-        if [[ -r "${DNSMASQ_PID}" ]]; then
+        if [[ "${APACHECTL}" =~ \/opt\/local ]]; then
+            port unload dnsmasq &
+            :
+        elif [[ -r "${DNSMASQ_PID}" ]]; then
             z=$(<"${DNSMASQ_PID}")
             pkill -TERM -F "${DNSMASQ_PID}" >/dev/null 2>&1 &
             printf 'Stopping dnsmasq (%s) ... ' "${z}"
@@ -650,7 +670,11 @@ helpmenu
 
     if [ "${SIGNAL_HTTPD}" -eq 0 ] || [ "${SIGNAL_MASQ}" -eq 4 ]
     then
-        if [[ -r "${HTTPD_PID}" ]]; then
+        if [[ "${APACHECTL}" =~ \/opt\/local ]]; then
+            port unload apache2 &
+            wait
+            :
+        elif [[ -r "${HTTPD_PID}" ]]; then
             z=$(<"${HTTPD_PID}")
             pkill -TERM -F "${HTTPD_PID}" >/dev/null 2>&1 &
             printf 'Stopping httpd (%s) ... ' "${z}"
@@ -662,7 +686,7 @@ helpmenu
     else
         :
     fi
-
+    
     printf 'Completely shutdown.\n\n'
 }
 
@@ -777,7 +801,7 @@ helpmenu
     sleep 1
 
     "${APACHECTL}" -f "${HTTPD_CONFIG}" -S
-
+    
     printf '\v\v'
     exit 100
 
@@ -920,7 +944,11 @@ _build() {
         exit $?
     fi
 
-    mkdir -p {"${PID_ROOT}","${CONF_ROOT}","${CONF_ROOT}/extra","${PHP_ROOT}","${LOGS_ROOT}","${VHOST_ROOT}","${HOME_SITE_ROOT}"}
+    if [[ 1 -eq $IS_MACPORTS ]]; then
+        mkdir -p {"${CONF_ROOT}","${CONF_ROOT}/extra","${PHP_ROOT}","${LOGS_ROOT}","${VHOST_ROOT}","${HOME_SITE_ROOT}"}
+    else
+        mkdir -p {"${PID_ROOT}","${CONF_ROOT}","${CONF_ROOT}/extra","${PHP_ROOT}","${LOGS_ROOT}","${VHOST_ROOT}","${HOME_SITE_ROOT}"}
+    fi
 
     FetchConfigs "${HTTPD_ROOT}"
 
@@ -1025,7 +1053,6 @@ http-byob() {
     fi
 
     Env  # define environment
-
     "_${func_pass}" "${*}"
 }
 
