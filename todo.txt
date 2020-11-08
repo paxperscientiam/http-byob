@@ -46,3 +46,4 @@ in order to target these processes need to somehow tag them
 Make it so logging works without logrotate
 create a status webpage
 Use named pipes as default logging option which means logging is ephmeeral
+run httpd in foreground
