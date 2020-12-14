@@ -3,6 +3,17 @@ shopt -s extglob
 shopt -s nullglob
 unset CDPATH
 
+declare -r BUNDLE_REF="./${BASH_SOURCE%/*}/"
+
+if [[ -z "${BASH_SOURCE}" ]]; then
+    printf 'Cannot find executing code source!\n'
+    exit 1
+fi
+
+
+cd "${BUNDLE_REF}" || exit
+declare -r BUNDLE_ROOT="$(pwd)/.."
+
 #referecs
 # https://github.com/docker-library/php/blob/master/apache2-foreground
 
@@ -45,7 +56,7 @@ declare -x SIGNAL_HTTPD=4
 
 declare -x SIGNAL_MESSAGE=
 
-declare -x HTTPD_CONFIG
+declare -x HTTPD_CONFIG="${BUNDLE_ROOT}/conf/httpd.conf"
 
 # ########################
 # # DIRECTORY STRUCTURE
@@ -107,16 +118,16 @@ case "$(uname -s)" in
             printf ' * server root: %s (native build) ' "${HTTPD_SERVER_ROOT}"
             printf '✓\n'
         fi
-
-
-
         ;;
     Linux)
-        #echo 'Linux'
+        echo 'Linux'
+        printf '%s\n' "Sorry, not ready for your OS!"
+        exit 1
         ;;
 
     *)
         printf '%s\n' "Sorry, not ready for your OS!"
+        exit 1
         ;;
 esac
 
@@ -142,16 +153,6 @@ _test()
     local ERR
     local var
 
-    #title Testing ...
-
-    # alias list
-    # printf '%s\n' "Server alias list:"
-    # while IFS='' read -r line; do
-    #     if [[ $line =~ alias*(.+) ]]; then
-    #         printf '%s\n' "${BASH_REMATCH[1]}"
-    #     fi
-    # done < <("${APACHECTL}" -f "${HTTPD_CONFIG}" -S)
-
     printf 'Checking availibility of port %s ...\n' "${HTTPD_PORT}"
 
     printf ' * httpd:%s ' "${HTTPD_PORT}"
@@ -174,11 +175,10 @@ _test()
     sleep 1
 
     "${APACHECTL}" -f "${HTTPD_CONFIG}" -S
-    
+
     printf '\v\v'
     exit 100
 }
-
 
 _HTTPD()
 {
@@ -198,12 +198,41 @@ _HTTPD()
     # ) &
 
     exec "${APACHECTL}" \
-        -f "${HTTPD_CONFIG:?}" \
+        -f "${HTTPD_CONFIG}" \
         -e error \
         -k start 
     #        disown %1
 
     printf '%s\n' $'Starting `httpd`. '
+}
+
+_stop() {
+            if [[ -r "${HTTPD_PID}" ]]; then
+                z=$(<"${HTTPD_PID}")
+                pkill -TERM -F "${HTTPD_PID}" >/dev/null 2>&1 &
+                printf 'Stopping httpd (%s) ... ' "${z}"
+                wait
+                printf 'done.\n'
+            else
+                printf 'No PID file for httpd found.\n\n'
+            fi
+}
+
+assert_defined() {
+    local msg
+
+    printf -v msg "$red This variable must be defined" "${red}" "${end}"
+    echo ${HTTPD_SERVER_ROOT:?$msg}
+    echo ${HTTPD_SERVER_LIB_ROOT:?$msg}
+    echo ${HTTPD_DOCUMENT_ROOT:?$msg}
+
+    echo ${DNS_PORT:?$msg}
+    echo ${HTTPD_PORT:?$msg}
+    echo ${HTTPD_CONFIG:?$msg}
+
+    echo ${BUNDLE_ROOT:?$msg}
+
+    echo ${HTTPD_PID:?$msg}
 }
 
 
@@ -226,16 +255,16 @@ http-byob() {
             start)
                 func_pass='HTTPD'
                 ;;
+                        stop)
+                            func_pass='stop'
+                            ;;
             -f)
                 HTTPD_CONFIG="${value:='../conf/httpd.conf'}"
                 ;;
             -r)
-                HTTPD_DOCUMENT_ROOT="${value:?}"
+                HTTPD_DOCUMENT_ROOT="${value:='./'}"
                 ;;
             *)
-                # what should the default behavior be?
-               # echo 'no command specified'
-             #   exit;
                 ;;
         esac
         index=$(( index + 1 ))
@@ -247,8 +276,13 @@ http-byob() {
         exit 1
     fi
 
+    if ! assert_defined 2>&1 > /dev/null; then
+        exit;
+    fi
+
     "_${func_pass}" "${*}"
 }
+
 
 http-byob "${@}"
 
