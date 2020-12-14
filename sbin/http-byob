@@ -3,6 +3,10 @@ shopt -s extglob
 shopt -s nullglob
 unset CDPATH
 
+#referecs
+# https://github.com/docker-library/php/blob/master/apache2-foreground
+
+
 #set -x
 
 ###### STATE
@@ -41,6 +45,8 @@ declare -x SIGNAL_HTTPD=4
 
 declare -x SIGNAL_MESSAGE=
 
+declare -x HTTPD_CONFIG
+
 # ########################
 # # DIRECTORY STRUCTURE
 # ########################
@@ -49,16 +55,20 @@ declare -x HTTPD_SERVER_ROOT
 declare -x HTTPD_SERVER_LIB_ROOT
 declare -x HTTPD_DOCUMENT_ROOT
 
-declare -xr PID_ROOT="${TMPDIR}/http-byob/pids"
+
+#declare -x BOB_ROOT=$(mktemp -dt bob.XXXXXXXXXX)
+
+#declare -xr PID_ROOT=$(mktemp -ut httpbyob.httpd.pid)
+
+declare -xr LOGS_ROOT="${HOME}/byob/logs"
+declare -xr PID_ROOT="${HOME}/byob/pids"
 
 declare -xr HTTPD_PID="${PID_ROOT}/httpd.pid"
 
-declare -xr LOGS_ROOT="${TMPDIR}/http-byob/logs"
-
-mkdir -p {"${PID_ROOT}","${LOGS_ROOT}"}
-
 declare HTTPD
 declare APACHECTL
+
+install -d -o $(logname) -m 755 {"${PID_ROOT}","${LOGS_ROOT}"}
 
 ########################
 # FIND EXECUTABLES
@@ -73,7 +83,6 @@ else
     exit 1
 fi
 
-
 printf ' * apachectl '
 if APACHECTL=$(command -v apachectl) >/dev/null 2>&1; then
     printf '✓\n'
@@ -82,16 +91,24 @@ else
     exit 1
 fi
 
+printf 'Determining apache server build location ...\n'
 case "$(uname -s)" in
+
     Darwin)
         #echo 'Mac OS X'
         if [[ "${APACHECTL}" =~ \/opt\/local ]]; then
             IS_MACPORTS=1
             HTTPD_SERVER_LIB_ROOT="${HTTPD_SERVER_ROOT}/lib/apache2/modules"
+            printf ' * server root: %s (macports build) ' "${HTTPD_SERVER_ROOT}"
+            printf '✓\n'
         else
             # macos catalina
             HTTPD_SERVER_LIB_ROOT="${HTTPD_SERVER_ROOT}/libexec/apache2"
+            printf ' * server root: %s (native build) ' "${HTTPD_SERVER_ROOT}"
+            printf '✓\n'
         fi
+
+
 
         ;;
     Linux)
@@ -119,14 +136,52 @@ while read -r line; do
     printf '%s %s\n' "$red$line$end" "${!line}"
 done < <(compgen -A variable | egrep '^HTTPD|^APACHE|^DNS|^SIGNAL')
 
+_test()
+{
+
+    local ERR
+    local var
+
+    #title Testing ...
+
+    # alias list
+    # printf '%s\n' "Server alias list:"
+    # while IFS='' read -r line; do
+    #     if [[ $line =~ alias*(.+) ]]; then
+    #         printf '%s\n' "${BASH_REMATCH[1]}"
+    #     fi
+    # done < <("${APACHECTL}" -f "${HTTPD_CONFIG}" -S)
+
+    printf 'Checking availibility of port %s ...\n' "${HTTPD_PORT}"
+
+    printf ' * httpd:%s ' "${HTTPD_PORT}"
+    if lsof -n -iTCP:"${HTTPD_PORT}" >/dev/null 2>&1; then
+        printf '— in use\n'
+        lsof -iTCP:"${HTTPD_PORT}" -sTCP:LISTEN
+    else
+        printf '— open\n'
+    fi
+
+    # printf ' * dnsmasq:%s ' "${DNS_PORT}"
+    # if lsof -n -iTCP:"${DNS_PORT}" >/dev/null 2>&1; then
+    #     printf '— in use\n'
+    #     lsof -iTCP@127.0.0.1:"${DNS_PORT}"
+    # else
+    #     printf '— open\n'
+    # fi
+    # printf '\n\n'
+
+    sleep 1
+
+    "${APACHECTL}" -f "${HTTPD_CONFIG}" -S
+    
+    printf '\v\v'
+    exit 100
+}
+
 
 _HTTPD()
 {
-
-    HTTPD_DOCUMENT_ROOT="${4}"
-    HTTPD_CONFIG="${2}"
-
-    echo $HTTPD_CONFIG
 
     #local pid
     :
@@ -142,19 +197,60 @@ _HTTPD()
 
     # ) &
 
-    "${APACHECTL}" \
-            -f "${HTTPD_CONFIG}" \
-            -k start
+    exec "${APACHECTL}" \
+        -f "${HTTPD_CONFIG:?}" \
+        -e error \
+        -k start 
     #        disown %1
 
     printf '%s\n' $'Starting `httpd`. '
 }
-_HTTPD $@
 
 
+http-byob() {
+    local options=("${@}")
+    local opt_next
+    local value
+    local index=1
+    local _index
+    local func_reference
+    local func_reflection
+    for opt in ${options[@]}; do
+        :
+        value=${options[$index]}
+        :
+        case "${opt}" in
+            test)
+                func_pass='test'
+                ;;
+            start)
+                func_pass='HTTPD'
+                ;;
+            -f)
+                HTTPD_CONFIG="${value:='../conf/httpd.conf'}"
+                ;;
+            -r)
+                HTTPD_DOCUMENT_ROOT="${value:?}"
+                ;;
+            *)
+                # what should the default behavior be?
+               # echo 'no command specified'
+             #   exit;
+                ;;
+        esac
+        index=$(( index + 1 ))
+    done
 
-exit;
+    if [ 0 -eq ${#func_pass} ]
+    then
+        echo "no command found"
+        exit 1
+    fi
 
+    "_${func_pass}" "${*}"
+}
+
+http-byob "${@}"
 
 # old below
 
