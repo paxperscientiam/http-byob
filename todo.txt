@@ -47,3 +47,6 @@ Make it so logging works without logrotate
 create a status webpage
 Use named pipes as default logging option which means logging is ephmeeral
 run httpd in foreground
+make autodetection of config in container with fallback to homefolder config
+enforce one active at a time
+write properly scoped roadmap

@@ -14,7 +14,7 @@ fi
 cd "${BUNDLE_REF}" || exit
 declare -r BUNDLE_ROOT="$(pwd)/.."
 
-#referecs
+#references
 # https://github.com/docker-library/php/blob/master/apache2-foreground
 
 
@@ -23,7 +23,6 @@ declare -r BUNDLE_ROOT="$(pwd)/.."
 ###### STATE
 # declare -i IS_CONTINUING="${IS_CONTINUING:-1}"
 # declare -i IS_HELP_MODE=2
-# declare -i IS_MACPORTS=0
 ######
 # colors
 declare end=$'\033[0m'
@@ -65,14 +64,14 @@ declare -x HTTPD_SERVER_ROOT
 
 declare -x HTTPD_SERVER_LIB_ROOT
 declare -x HTTPD_DOCUMENT_ROOT
-
+HTTPD_DOCUMENT_ROOT='./'
 
 #declare -x BOB_ROOT=$(mktemp -dt bob.XXXXXXXXXX)
 
 #declare -xr PID_ROOT=$(mktemp -ut httpbyob.httpd.pid)
 
-declare -xr LOGS_ROOT="${HOME}/byob/logs"
-declare -xr PID_ROOT="${HOME}/byob/pids"
+declare -xr LOGS_ROOT="${HOME}/.http-byob/logs"
+declare -xr PID_ROOT="${HOME}/.http-byob/pids"
 
 declare -xr HTTPD_PID="${PID_ROOT}/httpd.pid"
 
@@ -108,7 +107,6 @@ case "$(uname -s)" in
     Darwin)
         #echo 'Mac OS X'
         if [[ "${APACHECTL}" =~ \/opt\/local ]]; then
-            IS_MACPORTS=1
             HTTPD_SERVER_LIB_ROOT="${HTTPD_SERVER_ROOT}/lib/apache2/modules"
             printf ' * server root: %s (macports build) ' "${HTTPD_SERVER_ROOT}"
             printf '✓\n'
@@ -146,6 +144,12 @@ fi
 while read -r line; do
     printf '%s %s\n' "$red$line$end" "${!line}"
 done < <(compgen -A variable | egrep '^HTTPD|^APACHE|^DNS|^SIGNAL')
+printf '\n\n'
+
+_Locate() {
+    [[ -f "${1}" ]] && return 0
+    return 1
+}
 
 _test()
 {
@@ -163,18 +167,11 @@ _test()
         printf '— open\n'
     fi
 
-    # printf ' * dnsmasq:%s ' "${DNS_PORT}"
-    # if lsof -n -iTCP:"${DNS_PORT}" >/dev/null 2>&1; then
-    #     printf '— in use\n'
-    #     lsof -iTCP@127.0.0.1:"${DNS_PORT}"
-    # else
-    #     printf '— open\n'
-    # fi
-    # printf '\n\n'
-
     sleep 1
 
     "${APACHECTL}" -f "${HTTPD_CONFIG}" -S
+printf '\v'
+    "${APACHECTL}" -f "${HTTPD_CONFIG}" -t
 
     printf '\v\v'
     exit 100
@@ -182,49 +179,55 @@ _test()
 
 _HTTPD()
 {
-
-    #local pid
-    :
-    # while IFS= read -r line; do
-    #     printf '%s\n' "$line" | nc "${HOSTNAME}" "${HTTPD_LOG_PORT}"
-    # done < <(
-    #     "${APACHECTL}" \
-            #         -f "${HTTPD_CONFIG}" \
-            #         -e info \
-            #         -DFOREGROUND \
-            #         -k start 2>&1
-    #            -e debug \
-
-    # ) &
-
     exec "${APACHECTL}" \
         -f "${HTTPD_CONFIG}" \
         -e error \
-        -k start 
+        -k start
     #        disown %1
 
     printf '%s\n' $'Starting `httpd`. '
 }
 
-_stop() {
-            if [[ -r "${HTTPD_PID}" ]]; then
-                z=$(<"${HTTPD_PID}")
-                pkill -TERM -F "${HTTPD_PID}" >/dev/null 2>&1 &
-                printf 'Stopping httpd (%s) ... ' "${z}"
-                wait
-                printf 'done.\n'
-            else
-                printf 'No PID file for httpd found.\n\n'
-            fi
+_restart()
+{
+    if _Locate "${HTTPD_PID}"; then
+        pkill -HUP -F "${HTTPD_PID}" &
+        printf '%s' "Restarting Apache httpd ... "
+        wait
+
+        PID="$(<"${HTTPD_PID}")"
+        if ps -p "${PID:?}" >/dev/null 2>&1
+        then
+            printf '%s (%s)\n' "done." "${PID}"
+        else
+            # test if restart was successful
+            printf '%s (%s)\n' "failed." "$?"
+        fi
+    else
+        printf 'The PID file %s was not found! Is Apache server running?\n\n' "${HTTPD_PID}"
+    fi
+
 }
 
-assert_defined() {
+_stop() {
+    if [[ -r "${HTTPD_PID}" ]]; then
+        z=$(<"${HTTPD_PID}")
+        pkill -TERM -F "${HTTPD_PID}" >/dev/null 2>&1 &
+        printf 'Stopping httpd (%s) ... ' "${z}"
+        wait
+        printf 'done.\n'
+    else
+        printf 'No PID file for httpd found.\n\n'
+    fi
+}
+
+assert_defined_pre() {
     local msg
 
     printf -v msg "$red This variable must be defined" "${red}" "${end}"
     echo ${HTTPD_SERVER_ROOT:?$msg}
     echo ${HTTPD_SERVER_LIB_ROOT:?$msg}
-    echo ${HTTPD_DOCUMENT_ROOT:?$msg}
+
 
     echo ${DNS_PORT:?$msg}
     echo ${HTTPD_PORT:?$msg}
@@ -233,6 +236,10 @@ assert_defined() {
     echo ${BUNDLE_ROOT:?$msg}
 
     echo ${HTTPD_PID:?$msg}
+}
+
+assert_defined_post() {
+    echo ${HTTPD_DOCUMENT_ROOT:?$msg}
 }
 
 
@@ -255,14 +262,17 @@ http-byob() {
             start)
                 func_pass='HTTPD'
                 ;;
-                        stop)
-                            func_pass='stop'
-                            ;;
-            -f)
-                HTTPD_CONFIG="${value:='../conf/httpd.conf'}"
+            stop)
+                func_pass='stop'
                 ;;
+            restart)
+                func_pass='restart'
+                ;;
+            # -f)
+            #     HTTPD_CONFIG="${value:='../conf/httpd.conf'}"
+            #     ;;
             -r)
-                HTTPD_DOCUMENT_ROOT="${value:='./'}"
+                HTTPD_DOCUMENT_ROOT="${value:=$HTTPD_DOCUMENT_ROOT}"
                 ;;
             *)
                 ;;
@@ -276,7 +286,7 @@ http-byob() {
         exit 1
     fi
 
-    if ! assert_defined 2>&1 > /dev/null; then
+    if ! assert_defined_pre 2>&1 > /dev/null; then
         exit;
     fi
 
@@ -285,386 +295,6 @@ http-byob() {
 
 
 http-byob "${@}"
-
-# old below
-
-#CWD=$(perl -MFile::Spec -e 'printf File::Spec->canonpath($ENV{__CONTAINER_NAME}),qq<\n>')
-
-
-
-
-# :
-# #CONTAINER_NAME=$(perl -MFile::Spec -e 'printf File::Spec->canonpath($ENV{__CONTAINER_NAME}),qq<\n>')
-
-
-# PS3="Please choose an option: "
-# :
-# ###### STATE
-# declare -i IS_INSTALLED=1
-# declare -i IS_CONTINUING="${IS_CONTINUING:-1}"
-# declare -i IS_HELP_MODE=2
-# declare -i IS_MACPORTS=0
-# ######
-# ###### THE ENVIRONMENT (declarations) ###########
-# declare -x INSTALL_ROOT
-# declare -x HTTPD_USER
-# ###############
-# # IO
-# ###############
-# declare -xi DNS_PORT=53
-# declare -xi HTTPD_PORT=80
-
-# declare -xi DNSMASQ_LOG_PORT=9005
-# declare -xi HTTPD_LOG_PORT=9000
-
-# declare -xr HTTPD_VHOST_CUSTOM_LOG=/dev/null
-# declare -xr HTTPD_VHOST_ERROR_LOG=/dev/null
-
-# declare -x LOGROTATE
-
-# declare -xr HTTPD_SERVER_NAME="localhost"
-
-# declare -xr HOSTNAME="${HOSTNAME}"
-
-# declare -x SIGNAL_MASQ=4 # 0=>called, 1=>stop, 2=>restart, 3=>start, 4=>null
-# declare -x SIGNAL_HTTPD=4
-
-# declare -x SIGNAL_MESSAGE=
-
-# # will only override what is allowed
-# # source http_byob.cfg >/dev/null 2>&1
-
-# declare PHP_VERSION
-# if ! PHP_VERSION=$(php -r "echo PHP_MAJOR_VERSION.PHP_MINOR_VERSION;") >/dev/null 2>&1; then
-#     PHP_VERSION=""
-#     printf 'php version is indeterminate\n\n'
-# else
-#     printf 'Using php%s\n\n' "${PHP_VERSION}"
-# fi
-# #
-# ########################
-# # DIRECTORY STRUCTURE
-# ########################
-# declare -x HTTPD_SERVER_ROOT
-
-# declare -x HTTPD_SERVER_LIB_ROOT
-
-# declare -x HTTPD_ROOT
-# declare -x CONTAINER_NAME
-
-# # Apache says it NOT include trailing slash
-# declare -x HTTPD_DOCUMENT_ROOT
-# #
-# declare -x PHP_ROOT
-
-# declare -x PID_ROOT
-
-# declare -x CONF_ROOT
-
-# declare -x LOGS_ROOT
-
-# declare -x DNSMASQ_PID
-# declare -x HTTPD_PID
-# :
-# declare -x DNS_RESOLV
-# declare -x DNS_HOSTS
-# :
-# # Configs
-# declare -x HTTPD_CONFIG
-# declare -x DNSMASQ_CONFIG
-
-
-# declare -x PHPRC
-
-# ##################################
-
-# # colors
-# declare end=$'\033[0m'
-# declare red=$'\033[0;31m'
-# declare yellow=$'\033[0;33m'
-
-# function red {
-#     printf '%s%s%s' "${red}" "${1}" "${end}"
-# }
-# function yellow {
-#     printf '%s%s%s' "${yellow}" "${1}" "${end}"
-# }
-
-
-
-# _clean() {
-#     [ "${IS_HELP_MODE}" -eq 0 ] && helpful <<helpmenu
-# Clean stuff.
-# helpmenu
-#     shift
-
-#     if [[ $1 == '-H' || "${#1}" -eq 0 ]]
-#     then
-#         if rm "${HTTPD_PID}" >/dev/null 2>&1
-#         then
-#             printf '%s\n' "Removed httpd PID file."
-#         fi
-#     fi
-#     #
-#     if [[ $1 == '-D' || "${#1}" -eq 0 ]]
-#     then
-#         if rm "${DNSMASQ_PID}" >/dev/null 2>&1
-#         then
-#             printf '%s\n' "Removed dnsmasq PID file."
-#         fi
-#     fi
-#     #
-#     killall nc >/dev/null 2>&1
-
-#     # ipconfig set en1 DHCP &
-#     #     wait
-#     printf '%s\n' "Done cleaning."
-# }
-# err_report() {
-#     local msg="Error on line #$1
-# "
-#     red "${msg}"
-#     exit 1
-# }
-# trap 'err_report $LINENO' ERR
-# :
-# End() {
-#     local code="${1}"
-#     local msg
-
-#     case "${code}" in
-#         0)
-#             title 'http-byob: bye'
-#             printf 'Bye\n'
-#             ;;
-#         *)
-#             msg="Something may have gone wrong (${code})
-# "
-#             red "${msg}"
-#             ;;
-#     esac
-# }
-# trap 'End ${?}' EXIT
-# force_quit() {
-#     local msg='
-# Interruption! Something bad may have happened (???)
-# '
-#     red "${msg}"
-# }
-# trap 'force_quit ${?}' SIGHUP SIGINT SIGTERM INT
-# :
-# _Locate() {
-#     [[ -f "${1}" ]] && return 0
-#     return 1
-# }
-# :
-# _D(){
-#     local signal
-
-#     if ! lsof -n -iTCP:"${DNS_PORT}" >/dev/null 2>&1
-#     then
-#         dnsmasq \
-#             --log-queries \
-#             --log-facility="${DNSMASQ_LOG:-\-}" \
-#             --log-async=15 \
-#             --stop-dns-rebind \
-#             --bind-interfaces \
-#             --user="${HTTPD_USER}" \
-#             --port=53 \
-#             --local-service \
-# 		        --server=/lan/127.0.0.1 \
-#             --address=/lan/127.0.0.1 \
-#             --pid-file="${DNSMASQ_PID}" \
-#             --cache-size=0 \
-#             --no-resolv \
-#             --no-hosts \
-#             --strict-order \
-#             --conf-file="${DNSMASQ_CONFIG}"
-#         signal="${?}"
-#         printf 'Starting dnsmasq ... '
-#         if [ "${signal}" -ne 0 ]; then
-#             printf 'failed\n'
-#             exit "${signal}"
-#         fi
-#         # wait
-#         echo "DNS SIGNAL: ${signal}"
-#     else
-#         printf 'Unable to bind to port %s.\n' "${DNS_PORT}"
-#         printf 'Check with this: lsof -n -iTCP:%s\n' "${DNS_PORT}"
-#         #exit 1
-#     fi
-# }
-
-# title ()
-# {
-#     echo -ne "\\033]0;$*\\007"
-# }
-# :
-# Msg() {
-#     printf '%s\n\n' "${1:-... exiting.}"
-#     [[ "${#2}" -gt 0 ]] && exit "${2}"
-#     return 0
-# }
-# #################
-# :
-# # permission check
-# gate() {
-#     [ "${UID}" -ne 0 ] && Msg "Run with sudo!" && exit 1
-#     printf 'Continuing with elevated privileges.\n\n'
-#     return 0
-# }
-
-
-# declare HTTPD
-# declare APACHECTL
-# declare PHP
-# declare DNSMASQ
-# isInstalled() {
-#     [ "${IS_INSTALLED}" -eq 0 ] && return 0
-#     ########################
-#     # FIND EXECUTABLES
-#     ########################
-#     printf 'Verifying that executables are installed ...\n'
-#     printf ' * httpd '
-#     if HTTPD=$(command -v httpd) >/dev/null 2>&1; then
-#         HTTPD_SERVER_ROOT=$(dirname "$(dirname "${HTTPD}")")
-#         #printf 'Found httpd here: %s\n\n' "${HTTPD}"
-#         printf '✓\n'
-#     else
-#         printf '✗\n'
-#         exit 1
-#     fi
-
-
-#     printf ' * apachectl '
-#     if APACHECTL=$(command -v apachectl) >/dev/null 2>&1; then
-#         printf '✓\n'
-#     else
-#         printf '✗\n'
-#         exit 1
-#     fi
-
-#     printf ' * php '
-#     if PHP=$(command -v php) >/dev/null 2>&1; then
-#         printf '✓\n'
-#     else
-#         printf '✗\n'
-#         exit 1
-#     fi
-
-#     printf ' * dnsmasq '
-#     if DNSMASQ=$(command -v dnsmasq) >/dev/null 2>&1; then
-#         printf '✓\n'
-#     else
-#         printf '✗\n'
-#         exit 1
-#     fi
-
-#     printf ' * logratate '
-#     if LOGROTATE=$(command -v rotatelogs) >/dev/null 2>&1; then
-#         printf '✓\n'
-#     else
-#         printf '✗\n'
-#         exit 1
-#     fi
-
-#     printf '\n\n'
-
-#     IS_INSTALLED=0
-
-#     case "$(uname -s)" in
-
-#         Darwin)
-#             #echo 'Mac OS X'
-#             if [[ "${APACHECTL}" =~ \/opt\/local ]]; then
-#                 IS_MACPORTS=1
-#                 HTTPD_SERVER_LIB_ROOT="lib/apache2/modules"
-#             else
-#                 # macos catalina
-#                 HTTPD_SERVER_LIB_ROOT="libexec/apache2"
-#             fi
-
-#             ;;
-#         Linux)
-#             #echo 'Linux'
-#             ;;
-
-#         *)
-#             ;;
-#     esac
-
-# }
-# :
-# # isValid()
-# # {
-# #     [[ ! "${*}" =~ ^(-D|-H|^$)$ ]] && Msg "Accepted flags are -D and -H." 1
-# #     return 0
-# # }
-# :
-# title()
-# {
-#     echo -ne "\\033]0;""$*""\\007"
-# }
-# :
-# _MASQ()
-# {
-#     #    echoipdns lan
-#     #   return
-#     # maybe use a virtual file resolver?
-
-#     # Note: dnsmasq is configured NOT to read config file
-#     local pid
-
-#     local resolvFile; resolvFile="/etc/resolver/lan"
-
-#     [[ ! -d "/etc/resolver/" ]] && mkdir "/etc/resolver/"
-
-#     [[ ! -f "${resolvFile}" ]] && touch "${resolvFile}"
-# 	  printf '%s\n' "nameserver 127.0.0.1" >| "${resolvFile}"
-
-
-#     title launching dnsmasq
-#     _D
-#     # while IFS= read -r line; do
-#     #     printf '%s\n' "$line" | nc "${HOSTNAME}" "${DNSMASQ_LOG_PORT}"
-#     # done < <(
-#     #     _D
-#     # )
-#     # #&
-#     # #disown %1
-# }
-# #
-# _HTTPD()
-# {
-#     echo $HTTPD_SERVER_ROOT
-#     echo $HTTPD_SERVER_LIB_ROOT
-#     #local pid
-#     :
-#     # while IFS= read -r line; do
-#     #     printf '%s\n' "$line" | nc "${HOSTNAME}" "${HTTPD_LOG_PORT}"
-#     # done < <(
-#     #     "${APACHECTL}" \
-#         #         -f "${HTTPD_CONFIG}" \
-#         #         -e info \
-#         #         -DFOREGROUND \
-#         #         -k start 2>&1
-#     #            -e debug \
-
-#     # ) &
-
-#     "${APACHECTL}" \
-#         -f "${HTTPD_CONFIG}" \
-#         -k start
-#     #        disown %1
-
-#     printf '%s\n' $'Starting `httpd`. '
-# }
-
-
-# _listen()
-# {
-#     [ "${IS_HELP_MODE}" -eq 0 ] && helpful <<'helpmenu'
-# Stream netcat logs.
 
 # EXAMPLE:
 #  $ sbin/http-byob listen -H  # Stream `httpd` logs
@@ -736,394 +366,6 @@ http-byob "${@}"
 
 # }
 
-# Env() {
-#     local _signal_message=()
-#     _signal_message[0]="${SIGNAL_MASQ:+dnsmasq}"
-#     _signal_message[1]="${SIGNAL_HTTPD:+httpd}"
-#     SIGNAL_MESSAGE="(${_signal_message[*]})"
-
-#     local _HTTPD_ROOT
-#     local _CONTAINER_NAME
-
-#     export __CONTAINER_NAME="${CONTAINER_NAME}"
-#     export __HTTPD_ROOT="${HTTPD_ROOT:-./}"
-
-#     # clean up path
-#     CONTAINER_NAME=$(perl -MFile::Spec -e 'printf File::Spec->canonpath($ENV{__CONTAINER_NAME}),qq<\n>')
-
-#     #CONTAINER_NAME=$(perl -MCwd -e 'printf Cwd::abs_path($ENV{CONTAINER_NAME}),qq<\n>')
-#     if [[ "${__CONTAINER_NAME}" =~ ^\. ]]; then
-#         CONTAINER_NAME=$(perl -MCwd -e 'printf Cwd::abs_path($ENV{CONTAINER_NAME}),qq<\n>')
-#         # echo $wtf
-#         # exit
-#         # CONTAINER_NAME="${PWD}"
-#     fi
-
-
-#     _CONTAINER_NAME=$(basename "${CONTAINER_NAME}")
-
-
-#     HTTPD_ROOT=$(perl -MFile::Spec -e 'printf File::Spec->canonpath($ENV{__HTTPD_ROOT}),qq<\n>')
-
-#     #HTTPD_ROOT=$(perl -MCwd -e 'printf Cwd::abs_path($ENV{HTTPD_ROOT}),qq<\n>')
-
-
-#     if [[ "${__CONTAINER_NAME}" =~ /|\. ]]; then
-#         # hTTPD_ROOT is the files containing path
-#         HTTPD_ROOT="${CONTAINER_NAME}"
-#         CONTAINER_NAME="${_CONTAINER_NAME}"
-#     else
-#         HTTPD_ROOT="${HTTPD_ROOT}/${_CONTAINER_NAME}"
-#         CONTAINER_NAME="${_CONTAINER_NAME}"
-#     fi
-
-
-#     HTTPD_USER=$(logname)
-
-#     #HTTPD_ROOT=$(perl -MFile -MCwd -e 'print File::Spec->tmpdir(),qq<\n>')
-#     #echo "abs is $HTTPD_ROOT"
-
-#     if [[ "${HTTPD_ROOT}" != /* ]]; then
-#         HTTPD_ROOT="${PWD}/${HTTPD_ROOT}"
-#     fi
-
-#     HTTPD_DOCUMENT_ROOT="${HTTPD_ROOT}/www"
-
-#     HOME_SITE_ROOT="${HTTPD_DOCUMENT_ROOT}/home"
-
-#     VHOST_ROOT="${HTTPD_ROOT}/vhosts.d"
-
-#     PHP_ROOT="${HTTPD_ROOT}/etc/PHP${PHP_VERSION}/"
-
-#     if [[ 1 -eq $IS_MACPORTS ]]; then
-#         PID_ROOT="/opt/local/var/run"
-#     else
-#         PID_ROOT="${TMPDIR}/tmp/http-byob"
-#         #PID_ROOT="${HTTPD_ROOT}/var/run"
-#     fi
-
-#     CONF_ROOT="${HTTPD_ROOT}/conf"
-
-#     LOGS_ROOT="${HTTPD_ROOT}/logs"
-
-#     DNSMASQ_LOG="${LOGS_ROOT}/dnsmasq.log"
-
-#     if [[ 1 -eq $IS_MACPORTS ]]; then
-#         DNSMASQ_PID="${PID_ROOT}/dnsmasq/dnsmasq.pid"
-#     else
-#         DNSMASQ_PID="${PID_ROOT}/dnsmasq.pid"
-#     fi
-
-#     if [[ 1 -eq $IS_MACPORTS ]]; then
-#         HTTPD_PID="${PID_ROOT}/apache2/httpd.pid"
-#     else
-#         HTTPD_PID="${PID_ROOT}/httpd.pid"
-#     fi
-
-#     DNS_RESOLV="${HTTPD_ROOT}/etc/resolv.conf"
-
-#     DNS_HOSTS="${HTTPD_ROOT}/etc/hosts"
-
-#     HTTPD_CONFIG="${CONF_ROOT}/httpd.conf"
-
-#     DNSMASQ_CONFIG="${CONF_ROOT}/dnsmasq.conf"
-
-#     PHPRC="${PHP_ROOT}/php.ini"
-
-#     echo "ROOT: $HTTPD_ROOT"
-#     echo "CONT: $CONTAINER_NAME"
-
-#     mkdir -p {"${PID_ROOT}","${CONF_ROOT}","${CONF_ROOT}/extra","${PHP_ROOT}","${LOGS_ROOT}","${VHOST_ROOT}","${HOME_SITE_ROOT}"}
-
-#     sleep 1
-# }
-# :
-# __spin() {
-#     :
-# }
-# # Start
-# _start()
-# {
-#     [ "${IS_CONTINUING}" -eq 0 ] && printf 'Continuing ... \n\n'
-
-#     [ "${IS_HELP_MODE}" -eq 0 ] && helpful <<helpmenu
-# Start processes.
-
-# EXAMPLE:
-#  $ sbin/http-byob start     # launch \`dnsmasq\` and \`httpd\`
-#  $ sbin/http-body start -H  # launch \`httpd\`
-# helpmenu
-
-#     if [ "${IS_CONTINUING}" -ne 0 ]; then
-#         if [[ -d "${HTTPD_ROOT}" ]]; then
-#             :
-#             # printf 'Ready to start? %s\n' "${SIGNAL_MESSAGE}"
-#             # select yn in "Yes" "No"; do
-#             #     case $yn in
-#             #         Yes ) break ;;
-#             #         No ) exit;;
-#             #         *)
-#             #             printf 'Invalid entry (%s)!\n\n' "${REPLY}"
-#             #     esac
-#             # done
-#             # [ "${#yn}" -eq 0 ] && exit
-#             #printf 'Starting ... '
-#         else
-#             printf 'No container found. Aborting ... '
-#             exit 1
-#         fi
-#     fi
-
-
-#     IS_CONTINUING=0
-#     gate "${@}"; shift
-
-#     # signalling function instead
-
-#     if [ "${SIGNAL_MASQ}" -eq 0 ] || [ "${SIGNAL_HTTPD}" -eq 4 ]
-#     then
-#         _MASQ
-#     fi
-
-#     if [ "${SIGNAL_HTTPD}" -eq 0 ] || [ "${SIGNAL_MASQ}" -eq 4 ]
-#     then
-#         _HTTPD
-#     fi
-
-
-#     # if [ -z "${2}" ] || [ "${2}" == '-H' ]; then
-#     #     _HTTPD
-#     # fi
-# }
-
-# _log() {
-#     [ "${IS_CONTINUING}" -eq 0 ] && printf 'Continuing ... \n\n'
-#     if [ "${SIGNAL_MASQ}" -eq 0 ] || [ "${SIGNAL_HTTPD}" -eq 4 ]; then
-#         if [[ -f "${DNSMASQ_LOG}" ]]; then
-#             \tail -f "${DNSMASQ_LOG}"
-#             return
-#         fi
-#     fi
-
-#     local HTTPD_LOG="${HTTPD_ROOT}/logs/clients/access.log"
-#     if [ "${SIGNAL_HTTPD}" -eq 0 ] || [ "${SIGNAL_MASQ}" -eq 4 ]
-#     then
-#         :
-#         \tail -f "${HTTPD_LOG}"
-#         return
-#     fi
-
-# }
-# #
-# # Stop
-# _stop()
-# {
-#     [ "${IS_CONTINUING}" -eq 0 ] && printf 'Continuing ... \n\n'
-#     :
-#     [ "${IS_HELP_MODE}" -eq 0 ] && helpful <<'helpmenu'
-# Stop processes.
-
-# EXAMPLE:
-#  $ sbin/http-byob stop -D  # Stop `dnsmasq`
-#  $ sbin/http-byob stop -H  # Stop `httpd`
-# helpmenu
-
-#     if [ "${IS_CONTINUING}" -ne 0 ]; then
-#         if [[ -d "${HTTPD_ROOT}" ]]; then
-#             printf 'Ready to stop? %s\n' "${SIGNAL_MESSAGE}"
-#             select yn in "Yes" "No"; do
-#                 case $yn in
-#                     Yes ) break;;
-#                     No ) exit 66;;
-#                 esac
-#             done
-#             [ "${#yn}" -eq 0 ] && exit
-#             printf 'Stopping ...\n\n'
-#         else
-#             printf 'No container found. Aborting ... '
-#             exit 1
-#         fi
-#     fi
-
-#     IS_CONTINUING=0
-#     gate "${@}"; shift
-
-#     if [ "${SIGNAL_MASQ}" -eq 0 ] || [ "${SIGNAL_HTTPD}" -eq 4 ]
-#     then
-#         if [[ "${APACHECTL}" =~ \/opt\/local ]]; then
-#             port unload dnsmasq &
-#             :
-#         elif [[ -r "${DNSMASQ_PID}" ]]; then
-#             z=$(<"${DNSMASQ_PID}")
-#             pkill -TERM -F "${DNSMASQ_PID}" >/dev/null 2>&1 &
-#             printf 'Stopping dnsmasq (%s) ... ' "${z}"
-#             wait
-#             printf 'done.\n'
-#         else
-#             printf 'No PID file for dnsmasq found.\n\n'
-#         fi
-#     else
-#         :
-#     fi
-
-#     if [ "${SIGNAL_HTTPD}" -eq 0 ] || [ "${SIGNAL_MASQ}" -eq 4 ]
-#     then
-#         if [[ "${APACHECTL}" =~ \/opt\/local ]]; then
-#             port unload apache2 &
-#             wait
-#             :
-#         elif [[ -r "${HTTPD_PID}" ]]; then
-#             z=$(<"${HTTPD_PID}")
-#             pkill -TERM -F "${HTTPD_PID}" >/dev/null 2>&1 &
-#             printf 'Stopping httpd (%s) ... ' "${z}"
-#             wait
-#             printf 'done.\n'
-#         else
-#             printf 'No PID file for httpd found.\n\n'
-#         fi
-#     else
-#         :
-#     fi
-    
-#     printf 'Completely shutdown.\n\n'
-# }
-
-# _restart()
-# {
-#     [ "${IS_HELP_MODE}" -eq 0 ] && helpful <<helpmenu
-# Restart processes.
-# helpmenu
-
-#     gate "${@}"; shift
-#     if [ "${SIGNAL_HTTPD}" -eq 0 ] || [ "${SIGNAL_MASQ}" -eq 4 ]
-#     then
-#         if _Locate "${HTTPD_PID}"; then
-#             pkill -HUP -F "${HTTPD_PID}" &
-#             printf '%s' "Restarting Apache httpd ... "
-#             wait
-
-#             PID="$(<"${HTTPD_PID}")"
-#             if ps -p "${PID:?}" >/dev/null 2>&1
-#             then
-#                 printf '%s (%s)\n' "done." "${PID}"
-#             else
-#                 # test if restart was successful
-#                 printf '%s (%s)\n' "failed." "$?"
-#             fi
-#         else
-#             printf 'The PID file %s was not found! Unable to restart!\n\n' "${HTTPD_PID}"
-#         fi
-#     fi
-
-#     if [ "${SIGNAL_MASQ}" -eq 0 ] || [ "${SIGNAL_HTTPD}" -eq 4 ]; then
-
-#         if _Locate "${DNSMASQ_PID}"; then
-#             # SIGHUP forces reread of files sooo should work?
-#             pkill -SIGUSR1 -F "${DNSMASQ_PID}" &
-#             printf 'Restarting dnsmasq (%s) ... ' "${PID}"
-#             wait
-
-#             PID=$(<"${DNSMASQ_PID}")
-#             if ps -p "${PID:?}" >/dev/null 2>&1
-#             then
-#                 printf '%s (%s)\n' "done." "${PID}"
-#             else
-#                 # test if restart was successful
-#                 printf '%s (%s)\n' "failed." "$?"
-#             fi
-#         else
-#             printf 'The PID file %s was not found! Unable to restart!\n\n' "${DNSMASQ_PID}"
-#         fi
-#     fi
-# }
-
-# _test()
-# {
-
-#     [ "${IS_CONTINUING}" -eq 0 ] && printf 'Continuing ... \n\n'
-
-#     [ "${IS_HELP_MODE}" -eq 0 ] && helpful <<helpmenu
-# Test that configuration files are syntactically correct.
-# helpmenu
-
-#     if [[ ! -d "${HTTPD_ROOT}" ]]; then
-#         printf 'No container found. Aborting ... '
-#         exit 1
-#     elif [[ ! -f "${HTTPD_ROOT}/.http-byob.anchor" ]]; then
-#         printf 'Possible container, but root indicating file \".http-byob.anchor\" not found.\n\n'
-#         exit 1
-#     fi
-
-
-#     IS_CONTINUING=0
-#     #gate "${@}"; shift
-
-#     local ERR
-#     local var
-
-#     #title Testing ...
-
-#     #  if lsof -n -iTCP:"${HTTPD_PORT}" | awk '{print $1,$3}' | column -t
-#     #     then
-#     #         printf 'Port %s is occupied.\n' "${HTTPD_PORT}"
-#     #     fi
-#     #     printf '\v\v'
-
-#     # alias list
-#     # printf '%s\n' "Server alias list:"
-#     # while IFS='' read -r line; do
-#     #     if [[ $line =~ alias*(.+) ]]; then
-#     #         printf '%s\n' "${BASH_REMATCH[1]}"
-#     #     fi
-#     # done < <("${APACHECTL}" -f "${HTTPD_CONFIG}" -S)
-
-#     printf 'Checking port availability ...\n'
-
-#     printf ' * httpd:%s ' "${HTTPD_PORT}"
-#     if lsof -n -iTCP:"${HTTPD_PORT}" >/dev/null 2>&1; then
-#         printf '— in use\n'
-#         lsof -iTCP:"${HTTPD_PORT}" -sTCP:LISTEN
-#     else
-#         printf '— open\n'
-#     fi
-
-#     printf ' * dnsmasq:%s ' "${DNS_PORT}"
-#     if lsof -n -iTCP:"${DNS_PORT}" >/dev/null 2>&1; then
-#         printf '— in use\n'
-#         lsof -iTCP@127.0.0.1:"${DNS_PORT}"
-#     else
-#         printf '— open\n'
-#     fi
-#     printf '\n\n'
-
-#     sleep 1
-
-#     "${APACHECTL}" -f "${HTTPD_CONFIG}" -S
-    
-#     printf '\v\v'
-#     exit 100
-
-#     [[ -z $DNSMASQ ]] && Msg 'dnsmasq not found!' 1
-#     [[ ! -x $DNSMASQ ]] && Msg "Dnsmasq not executable" 1
-#     "${DNSMASQ}" -C "${DNSMASQ_CONFIG}" --test &
-#     wait
-#     printf '\v\v'
-
-#     exit
-#     printf 'Now testing variables ... \n\n'
-#     for var in DNS_PORT HTTPD_PORT DNSMASQ_LOG_PORT HTTPD_LOG_PORT;
-#     do
-#         if [[ ${!var} -eq 0 ]];then
-#             ERR='ERR'
-#         else
-#             ERR=''
-#         fi
-#         printf '%-30s%s\n' "${var}:${!var}" "${ERR:+ERR!}"
-#     done
-#     #         printf 'DNS_PORT
-#     #     [[ $HTTPD_PORT -eq 0 ]] && Msg "HTTPD_PORT not properly defined! $HTTPD_PORT"
-
-# }
 
 
 # _status() {
@@ -1172,190 +414,3 @@ http-byob "${@}"
 # }
 
 
-# FetchConfigs() {
-#     local UA='PaxPerScientiam HTTP-BYOB (Pseudo MAMP container maker) '
-#     local HEADER_1='Accept: application/vnd.github.v3.raw'
-#     local ROOT="${1:?}"
-#     local URL_BASE='https://api.github.com/repos/paxperscientiam/http-byob/contents/'
-#     local QUERY='?ref=develop'
-#     local FILES=(
-#         "www/home/fallback.php"
-#         "readme.md"
-#         "conf/httpd.conf"
-#         "conf/extra/httpd-autoindex.conf"
-#         "conf/extra/httpd-vhosts.conf"
-#         "conf/extra/mod_php73.conf"
-#         "conf/dnsmasq.conf"
-#         "etc/resolv.conf"
-#         "vhosts.d/all.conf"
-#         ".http-byob.anchor"
-#     )
-
-#     printf 'Fetching and writing to %s ... \n' "${ROOT}"
-#     while IFS='' read -r remote_file; do
-#         printf '  %s ... ' "${remote_file}"
-#         # don't redownload unncessarily
-#         _Locate "${ROOT}/${remote_file}" && printf 'done (unchanged).\n' && continue
-#         (curl -A "${UA}" -H "${HEADER_1}" "${URL_BASE}/${remote_file}${QUERY}" >| \
-#              "${ROOT}/${remote_file}" 2>/dev/null ) &
-#         wait
-#         printf 'done.\n'
-#     done < <(printf '%s\n' "${FILES[@]}")
-# }
-# :
-# _build() {
-#     INSTALL_ROOT="$(dirname "${HTTPD_ROOT:?}")"
-#     if [[ ! -d "${INSTALL_ROOT}" ]]; then
-#         printf 'The install root %s does not exist\n\n' "${INSTALL_ROOT}"
-#         exit 1
-#     fi
-
-#     if [[ ! -w "${INSTALL_ROOT}" ]]; then
-#         printf 'The user \"%s\" does not have permission to scaffold within the directory \"%s\". Please try another.\n\n' "${USER}" "${INSTALL_ROOT}"
-#         exit 1
-#     fi
-
-#     if [[ ! -d "${HTTPD_ROOT}" ]]; then
-#         echo "Ready to scaffold?"
-#         select yn in "Yes" "No"; do
-#             case $yn in
-#                 Yes ) break;;
-#                 No ) exit;;
-#             esac
-#         done
-#         [ "${#yn}" -eq 0 ] && exit
-#         printf 'Scaffolding ...\n\n'
-#     else
-#         msg="Build already exists here. Force? (${HTTPD_ROOT})
-# "
-#         yellow "${msg}"
-#         select yn in "Yes" "No"; do
-#             case $yn in
-#                 Yes ) break;;
-#                 No ) printf 'Aborting ... '; exit;;
-#             esac
-#         done
-#         [ "${#yn}" -eq 0 ] && exit
-#     fi
-#     echo "HDR ${HTTPD_DOCUMENT_ROOT}"
-#     if ! mkdir -p "${HTTPD_DOCUMENT_ROOT}"; then
-#         exit $?
-#     fi
-
-#     if [[ 1 -eq $IS_MACPORTS ]]; then
-#         mkdir -p {"${CONF_ROOT}","${CONF_ROOT}/extra","${PHP_ROOT}","${LOGS_ROOT}","${VHOST_ROOT}","${HOME_SITE_ROOT}"}
-#     else
-#         mkdir -p {"${PID_ROOT}","${CONF_ROOT}","${CONF_ROOT}/extra","${PHP_ROOT}","${LOGS_ROOT}","${VHOST_ROOT}","${HOME_SITE_ROOT}"}
-#     fi
-
-#     FetchConfigs "${HTTPD_ROOT}"
-
-#     return 0
-# }
-
-# entry(){
-#     http-byob "${@}"
-# }
-
-# _help() {
-#     printf 'Whoa ... dude. Mind blowing stuff\n\n'
-# }
-
-# declare -x func_pass
-# http-byob() {
-#     local options=("${@}")
-#     local opt_next
-#     local value
-#     local index=0
-#     local _index
-#     local func_reference
-#     local func_reflection
-#     for opt in "${options[@]}"; do
-#         :
-#         _index=$(( index + 1 ))
-#         value="${options[$_index]}"
-#         :
-#         case "${opt}" in
-#             --root|--container)
-#                 CONTAINER_NAME="${value:-HTTP-BYOB_Container}"
-#                 break
-#                 ;;
-#             -D)
-#                 SIGNAL_MASQ=3
-#                 ;;
-#             -H)
-#                 SIGNAL_HTTPD=3
-#                 ;;
-#             build|scaffold)
-#                 func_pass='build'
-#                 ;;
-#             start)
-#                 func_pass='start'
-#                 ;;
-#             stop)
-#                 func_pass='stop'
-#                 ;;
-#             restart)
-#                 func_pass='restart'
-#                 ;;
-#             test)
-#                 func_pass='test'
-#                 ;;
-#             listen|watch)
-#                 func_pass='listen'
-#                 ;;
-#             log)
-#                 func_pass='log'
-#                 ;;
-#             clean)
-#                 func_pass='clean'
-#                 ;;
-#             status)
-#                 func_pass='status'
-#                 ;;
-#             help)
-#                 IS_HELP_MODE=0
-#                 if command -v "_${2}" >/dev/null 2>&1
-#                 then
-#                     "_${2}"
-#                     exit
-#                 else
-#                     printf '%s is an unknown function.\n' "${2}"
-#                     exit 1
-#                 fi
-#                 ;;
-#             check)
-#                 isInstalled
-#                 exit 0
-#                 ;;
-#             alien)
-#                 compgen -A function ;exit
-#                 check -H
-#                 echo $?
-#                 exit 69
-#                 ;;
-#             __)
-
-#                 ;;
-#             *)
-#                 Msg "Unknown command: try 'start', 'stop', 'restart', 'test', 'listen', 'clean', 'help <command>'" 1
-#                 ;;
-#         esac
-#         (( index++ ))
-#     done
-
-#     # if [ "${#CONTAINER_NAME}" -eq 0 ]; then
-#     #     echo 'YOU MUST SPECIFY CONTAINER WITH --root|--container'
-#     #     exit 1
-#     # fi
-
-#     Env  # define environment
-#     "_${func_pass}" "${*}"
-# }
-
-# if ! isInstalled ;then
-#     printf 'Something is missing!\n\n'
-#     exit 1
-# fi
-
-# entry "${@}"
