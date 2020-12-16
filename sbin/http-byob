@@ -3,7 +3,7 @@ shopt -s extglob
 shopt -s nullglob
 unset CDPATH
 
-declare -r BUNDLE_REF="./${BASH_SOURCE%/*}/"
+declare -r BUNDLE_REF="/${BASH_SOURCE%/*}/"
 
 if [[ -z "${BASH_SOURCE}" ]]; then
     printf 'Cannot find executing code source!\n'
@@ -146,6 +146,48 @@ while read -r line; do
 done < <(compgen -A variable | egrep '^HTTPD|^APACHE|^DNS|^SIGNAL')
 printf '\n\n'
 
+_status() {
+    local PID
+
+    # get headers
+    #    ps -o "ppid,pid,etime,user,comm" | head -n 1 | column -t
+
+    if _Locate "${HTTPD_PID}"; then
+        PID=$(<"${HTTPD_PID}")
+        printf 'The parent PID for this apache server is %s\n\n' "${yellow}${PID:-???}${end}"
+
+        if ! kill -0 "${PID}" >/dev/null 2>&1
+        then
+            printf 'Process %s not found!\n\n' "${PID:-???}"
+        fi
+
+ #       command ps -p "${PID}" -o "comm=" | column -t 2>&1
+    else
+        printf 'The PID file (%s) for httpd was not found!\n\n' "${yellow}${HTTPD_PID}${end}"
+    fi
+}
+
+_listen() {
+    :
+    # if ! lsof -n -iTCP:${HTTPD_PORT} | grep httpd >/dev/null 2>&1
+    # then
+    #     printf '%s' "Waiting for httpd ... "
+    # fi
+
+    # # if it is not using it, wait for it
+    # (
+    #     while ! lsof -n -iTCP:${HTTPD_PORT} | grep httpd >/dev/null 2>&1
+    #     do
+    #         waited='yes'
+    #         sleep 0.5
+    #     done
+    #     [[ $waited == 'yes' ]] && printf '%s\n\n' "ready."
+    # ) &
+    # wait
+
+    # nc -k -l "${HTTPD_LOG_PORT}"
+}
+
 _Locate() {
     [[ -f "${1}" ]] && return 0
     return 1
@@ -262,6 +304,12 @@ http-byob() {
             start)
                 func_pass='HTTPD'
                 ;;
+            status)
+                func_pass='status'
+                ;;
+            listen)
+                func_pass='listen'
+                ;;
             stop)
                 func_pass='stop'
                 ;;
@@ -368,43 +416,6 @@ http-byob "${@}"
 
 
 
-# _status() {
-#     [ "${IS_HELP_MODE}" -eq 0 ] && helpful <<helpmenu
-# Dislay the status of various processes.
-# helpmenu
-#     # require watch
-#     local HAS_WATCH=1
-#     if ! command -v watch >/dev/null 2>&1; then
-#         printf 'The watch program is required for showing status continuously.\n'
-#     else
-#         HAS_WATCH=0
-#     fi
-#     echo $HAS_WATCH
-
-
-#     shift
-#     title status
-
-
-#     local PID
-
-#     ps -o "ppid,pid,etime,user,comm" | head -n 1 | column -t
-
-#     if _Locate "${DNSMASQ_PID}"; then
-#         PID=$(<"${DNSMASQ_PID}")
-#         # comm= give short and command= gives full command
-#         command ps -p "${PID}" -o "comm=" | column -t 2>&1
-#     else
-#         printf 'The PID file (%s) for dnsmasq was not found!\n\n' "${DNSMASQ_PID}"
-#     fi
-
-#     if _Locate "${HTTPD_PID}"; then
-#         PID=$(<"${HTTPD_PID}")
-#         command ps -p "${PID}" -o "comm=" | column -t 2>&1
-#     else
-#         printf 'The PID file (%s) for httpd was not found!\n\n' "${HTTPD_PID}"
-#     fi
-# }
 
 # helpful()
 # {
