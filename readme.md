@@ -14,58 +14,9 @@ cd http-byob
 Confirm that things are working well by going here: http://localhost:80/server-info
 
 
-## Build your own
-``` shell
-cd ~
-# This will create the folder ${HOME}/HTTP-BYOB_Container and scaffold there
-http-byob build --root # this will
-http-byob start --root # start httpd and dnsmasq
-```
-Confirm that things are working well by going here: http://localhost:80/server-info
-
-
-## Tearing down ...
-``` shell
-cd ~
-http-byob stop --root # stop httpd and dnsmasq
-\rm HTTP-BYOB_Container # this will remove everyting ... duh
-```
-
-OK, let's say you create a container with name.
-
-``` shell
-cd ~
-http-byob build --root ./custom-container-name
-```
-
-When you do this, you can go forth one of two ways ...
-
-``` shell
-# cd into the container and specify --root as .
-# or, stay above the container directory and specify --root as path/to/custom-container-name
-```
-
-## Going further
-
-* https://github.com/FiloSottile/mkcert
-
-
-<!-- Under heavy development. Use it at your own peril. -->
-
-
-
-<!-- What is? -->
-<!-- === -->
-<!-- `http-byob` is my little attempt at creating a faux container. All it is, however, is a script for running `dnsmasq` and verstion 2.4 of Apache's `httpd` web server. -->
-
-<!-- I've separated a lot of `httpd` configuration settings into variables stored in the `bash` script `sbin/http-byob`. At some point, I will entirely separate configuration options. Same with `dnsmasq` configuration, eventually. -->
-
-
 <!-- Requirements: -->
 <!-- * `bash` -->
 <!-- * `httpd` v2.4 -->
-<!-- * `dnsmasq` -->
-
 
 <!-- Usage -->
 <!-- === -->
