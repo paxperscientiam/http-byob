@@ -113,7 +113,7 @@ case "$(uname -s)" in
         else
             # macos catalina
             HTTPD_SERVER_LIB_ROOT="${HTTPD_SERVER_ROOT}/libexec/apache2"
-            printf ' * server root: %s (native build) ' "${HTTPD_SERVER_ROOT}"
+            printf ' * server root: %s (macos build) ' "${HTTPD_SERVER_ROOT}"
             printf '✓\n'
         fi
         ;;
@@ -149,19 +149,20 @@ printf '\n\n'
 _status() {
     local PID
 
-    # get headers
-    #    ps -o "ppid,pid,etime,user,comm" | head -n 1 | column -t
-
     if _Locate "${HTTPD_PID}"; then
         PID=$(<"${HTTPD_PID}")
         printf 'The parent PID for this apache server is %s\n\n' "${yellow}${PID:-???}${end}"
 
-        if ! kill -0 "${PID}" >/dev/null 2>&1
+        if kill -0 "${PID}" >/dev/null 2>&1
         then
+            if command -v pstree >/dev/null 2>&1
+            then
+                command pstree "${PID}"
+            fi
+        else
             printf 'Process %s not found!\n\n' "${PID:-???}"
         fi
 
- #       command ps -p "${PID}" -o "comm=" | column -t 2>&1
     else
         printf 'The PID file (%s) for httpd was not found!\n\n' "${yellow}${HTTPD_PID}${end}"
     fi
