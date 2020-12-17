@@ -3,7 +3,7 @@ shopt -s extglob
 shopt -s nullglob
 unset CDPATH
 
-declare -r BUNDLE_REF="/${BASH_SOURCE%/*}/"
+declare -r BUNDLE_REF="${BASH_SOURCE%/*}/"
 
 if [[ -z "${BASH_SOURCE}" ]]; then
     printf 'Cannot find executing code source!\n'
